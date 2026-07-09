@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 
@@ -12,6 +13,6 @@ class LessonProgressResponse(BaseModel):
     student_id: int
     lesson_id: int
     is_completed: bool
-    completed_at: datetime
+    completed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
