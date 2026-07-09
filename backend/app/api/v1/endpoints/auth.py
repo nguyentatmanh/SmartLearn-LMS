@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.api import deps
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserResponse
 from app.schemas.auth import Token
 from app.crud.user import get_user_by_email, create_user, authenticate
@@ -22,6 +22,11 @@ def register_user(
     """
     Register a new user (student or teacher).
     """
+    if user_in.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Public registration of admin accounts is not permitted.",
+        )
     user = get_user_by_email(db, email=user_in.email)
     if user:
         raise HTTPException(
