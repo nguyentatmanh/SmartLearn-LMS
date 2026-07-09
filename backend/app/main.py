@@ -5,8 +5,9 @@ from app.api.v1.api import api_router
 from app.core.database import engine
 from app.models import Base
 
-# Create database tables on startup (as a local development fallback)
-Base.metadata.create_all(bind=engine)
+# Create database tables on startup (as a local development fallback) if enabled
+if settings.AUTO_CREATE_TABLES:
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

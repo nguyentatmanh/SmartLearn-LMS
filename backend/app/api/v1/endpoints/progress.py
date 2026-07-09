@@ -43,3 +43,39 @@ def update_lesson_progress(
         lesson_id=progress_in.lesson_id, 
         is_completed=progress_in.is_completed
     )
+
+
+@router.get("/{lesson_id}", response_model=LessonProgressResponse)
+def read_lesson_progress(
+    lesson_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_active_student)
+) -> Any:
+    """
+    Get progress status for a specific lesson for the current student.
+    - Only Students can read their progress.
+    - Enforces enrollment check: student must be enrolled in the lesson's course.
+    """
+    lesson = crud_lesson.get_lesson(db, lesson_id=lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+        
+    enrollment = crud_enrollment.get_enrollment(db, student_id=current_user.id, course_id=lesson.course_id)
+    if not enrollment:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. You must be enrolled in the course to view progress on this lesson."
+        )
+        
+    progress = crud_progress.get_lesson_progress(db, student_id=current_user.id, lesson_id=lesson_id)
+    if not progress:
+        # Return default uncompleted progress
+        return {
+            "id": 0,
+            "student_id": current_user.id,
+            "lesson_id": lesson_id,
+            "is_completed": False,
+            "completed_at": None
+        }
+        
+    return progress
