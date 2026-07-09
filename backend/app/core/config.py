@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     
     SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-for-smartlearn-lms-development-only")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Short-lived access token as requested
+    AUTO_CREATE_TABLES: bool = False
 
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "db")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
