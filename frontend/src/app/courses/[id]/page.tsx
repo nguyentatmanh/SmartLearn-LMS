@@ -111,7 +111,7 @@ export default function CourseDetailPage() {
     setSubmitting(true);
     try {
       // Find current max order_index to place it at the end
-      const maxIndex = course?.chapters.reduce((max, ch) => Math.max(max, ch.order_index), 0) || 0;
+      const maxIndex = course?.chapters?.reduce((max, ch) => Math.max(max, ch.order_index), 0) || 0;
       await api.post(`/courses/${id}/chapters`, {
         title: chapterTitle,
         order_index: maxIndex + 1,
@@ -143,7 +143,7 @@ export default function CourseDetailPage() {
     try {
       // Get current lessons in chapter to set order_index
       const ch = course?.chapters.find(c => c.id === targetChapterId);
-      const maxIndex = ch?.lessons.reduce((max, les) => Math.max(max, les.order_index), 0) || 0;
+      const maxIndex = ch?.lessons?.reduce((max, les) => Math.max(max, les.order_index), 0) || 0;
 
       await api.post(`/courses/${id}/lessons`, {
         title: lessonTitle,

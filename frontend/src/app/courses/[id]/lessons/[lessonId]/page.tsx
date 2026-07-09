@@ -52,12 +52,14 @@ export default function LessonViewerPage() {
       setCourse(courseRes.data);
 
       // Check if this lesson is completed
-      // Since backend progress can be verified, we can check or hit endpoint
-      // To check progress status, let's fetch progress or see if student enrolled
-      // We can also fetch the progress record directly. Let's see if we get a progress back.
-      // We can inspect courses/student/enrolled list to see current progress or fetch the individual progress:
-      // For simplicity, we can log progress, and if the user hits it, we update it.
-      // Let's add a try-catch to fetch progress or set it.
+      if (user && user.role === 'student') {
+        try {
+          const progressRes = await api.get(`/progress/${lessonId}`);
+          setIsCompleted(progressRes.data.is_completed);
+        } catch (err) {
+          console.error('Failed to load progress state:', err);
+        }
+      }
     } catch (e) {
       console.error('Failed to load lesson:', e);
       router.push(`/courses/${courseId}`);
