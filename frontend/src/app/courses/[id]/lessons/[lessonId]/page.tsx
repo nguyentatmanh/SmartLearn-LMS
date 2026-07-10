@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { usePreference } from '@/context/PreferenceContext';
 import api from '@/lib/api';
+import AppHeader from '@/components/Header';
 import { 
   ArrowLeft, Loader2, BookOpen, CheckCircle, Video, FileText, 
   ExternalLink, ChevronRight, CheckCircle2 
@@ -32,6 +34,7 @@ interface CourseDetail {
 export default function LessonViewerPage() {
   const { id: courseId, lessonId } = useParams();
   const { user, isLoading: authLoading } = useAuth();
+  const { t } = usePreference();
   const router = useRouter();
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
@@ -102,10 +105,10 @@ export default function LessonViewerPage() {
 
   if (authLoading || loading || !lesson || !course) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0b0f19]">
+      <div className="min-h-dvh flex items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-violet-500 mx-auto" />
-          <p className="text-sm text-slate-400">Loading lesson content...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     );
@@ -114,55 +117,51 @@ export default function LessonViewerPage() {
   const ytVideoId = getYouTubeId(lesson.video_url);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0b0f19]">
+    <div className="min-h-dvh flex flex-col bg-background text-foreground transition-colors duration-300">
       
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 w-full glass border-b border-white/5 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <button
-            onClick={() => router.push(`/courses/${courseId}`)}
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Syllabus
-          </button>
-          
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs text-slate-500 font-semibold truncate max-w-[200px] sm:max-w-xs">
-              {course.title}
-            </span>
-          </div>
-        </div>
-      </header>
+      {/* Top Navbar Header */}
+      <AppHeader />
 
-      <div className="flex-grow flex flex-col lg:flex-row">
+      {/* Main Container */}
+      <div className="flex-grow flex flex-col lg:flex-row relative">
         
         {/* Left Side: Lesson Content */}
-        <main className="flex-grow p-6 lg:p-10 max-w-4xl mx-auto w-full space-y-8">
+        <main className="flex-grow p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto w-full space-y-6 sm:space-y-8 fade-in">
           
+          {/* Back action */}
+          <div>
+            <button
+              onClick={() => router.push(`/courses/${courseId}`)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1.5 px-2 rounded-lg hover:bg-muted"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t('backToSyllabus')}
+            </button>
+          </div>
+
           {/* Title and Progress Toggle */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-white/5">
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{lesson.title}</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-border">
+            <div className="space-y-1 min-w-0 flex-1 pr-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight break-words">{lesson.title}</h1>
             </div>
 
             {user?.role === 'student' && (
               <button
                 onClick={handleToggleComplete}
                 disabled={submittingProgress}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border ${
+                className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 border ${
                   isCompleted 
-                    ? 'bg-green-500/10 border-green-500/20 text-green-400' 
-                    : 'bg-violet-600 hover:bg-violet-500 border-transparent text-white'
-                }`}
+                    ? 'bg-success/15 border-success/20 text-success' 
+                    : 'bg-primary hover:bg-primary/95 border-transparent text-primary-foreground shadow-md shadow-primary/10'
+                } hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary/20`}
               >
                 {isCompleted ? (
                   <>
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
-                    Completed
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    {t('completed')}
                   </>
                 ) : (
-                  'Mark as Completed'
+                  t('markCompleted')
                 )}
               </button>
             )}
@@ -170,7 +169,7 @@ export default function LessonViewerPage() {
 
           {/* Embedded Video (YouTube) */}
           {ytVideoId && (
-            <div className="aspect-video w-full rounded-xl overflow-hidden shadow-2xl border border-white/10">
+            <div className="aspect-video w-full rounded-xl overflow-hidden shadow-lg border border-border bg-black">
               <iframe
                 src={`https://www.youtube.com/embed/${ytVideoId}`}
                 title="Lesson video"
@@ -184,49 +183,49 @@ export default function LessonViewerPage() {
 
           {/* Lecture Document Direct Link */}
           {lesson.document_url && (
-            <div className="glass p-4 rounded-xl border border-white/5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-indigo-400 shrink-0" />
+            <div className="glass p-4 rounded-xl border border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">Lecture Material</p>
-                  <p className="text-xs text-slate-500 truncate">{lesson.document_url}</p>
+                  <p className="text-sm font-semibold truncate text-foreground">{t('lectureMaterial')}</p>
+                  <p className="text-xs text-muted-foreground truncate" title={lesson.document_url}>{lesson.document_url}</p>
                 </div>
               </div>
               <a
                 href={lesson.document_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shrink-0"
+                className="w-full sm:w-auto px-3.5 py-2 bg-muted hover:bg-muted/80 border border-border rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shrink-0 focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
-                Open Document <ExternalLink className="h-3.5 w-3.5" />
+                {t('openDoc')} <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
               </a>
             </div>
           )}
 
           {/* Text Content */}
           {lesson.content ? (
-            <div className="text-slate-300 leading-relaxed text-sm whitespace-pre-line border border-white/5 rounded-2xl p-6 bg-[#0f172a]/20">
+            <div className="text-foreground/90 leading-relaxed text-sm sm:text-base whitespace-pre-line border border-border rounded-2xl p-6 bg-muted/20 break-words">
               {lesson.content}
             </div>
           ) : (
             !ytVideoId && !lesson.document_url && (
-              <p className="text-slate-500 text-xs italic">This lesson has no supplementary text content.</p>
+              <p className="text-muted-foreground text-xs italic">{t('noTextContent')}</p>
             )
           )}
 
         </main>
 
         {/* Right Side: Course Lesson Outline Navigation Sidebar */}
-        <aside className="w-full lg:w-80 glass lg:border-l border-white/5 p-6 flex flex-col gap-6 shrink-0 lg:max-h-[calc(100vh-4rem)] overflow-y-auto">
-          <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-            <BookOpen className="h-4 w-4 text-violet-400" />
-            <h3 className="font-extrabold text-sm">Course Navigation</h3>
+        <aside className="w-full lg:w-80 glass lg:border-l border-border p-6 flex flex-col gap-6 shrink-0 lg:max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <div className="flex items-center gap-2 border-b border-border pb-3">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <h3 className="font-extrabold text-sm text-foreground">{t('courseNavigation')}</h3>
           </div>
 
           <div className="space-y-6">
             {course.chapters.map((chapter) => (
               <div key={chapter.id} className="space-y-2">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pr-2 break-words">
                   {chapter.title}
                 </h4>
                 
@@ -235,10 +234,10 @@ export default function LessonViewerPage() {
                     <button
                       key={les.id}
                       onClick={() => router.push(`/courses/${courseId}/lessons/${les.id}`)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-left transition-all ${
                         les.id === lesson.id
-                          ? 'bg-violet-500/15 text-violet-400 border border-violet-500/10'
-                          : 'hover:bg-slate-900/50 text-slate-400 hover:text-slate-300 border border-transparent'
+                          ? 'bg-primary/10 text-primary border border-primary/20 font-bold'
+                          : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-transparent'
                       }`}
                     >
                       {les.video_url ? (
@@ -246,7 +245,7 @@ export default function LessonViewerPage() {
                       ) : (
                         <FileText className="h-3.5 w-3.5 shrink-0" />
                       )}
-                      <span className="truncate">{les.title}</span>
+                      <span className="truncate flex-1">{les.title}</span>
                     </button>
                   ))}
                 </div>

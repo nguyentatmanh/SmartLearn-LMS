@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { usePreference } from '@/context/PreferenceContext';
 import api from '@/lib/api';
+import AppHeader from '@/components/Header';
 import { 
   GraduationCap, BookOpen, Plus, Loader2, ArrowLeft, 
-  Trash2, Lock, FileText, Video, ChevronRight, PlaySquare 
+  Trash2, Lock, FileText, Video, ChevronRight 
 } from 'lucide-react';
 
 interface Lesson {
@@ -44,6 +46,7 @@ interface CourseDetail {
 export default function CourseDetailPage() {
   const { id } = useParams();
   const { user, isLoading: authLoading } = useAuth();
+  const { t } = usePreference();
   const router = useRouter();
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
@@ -110,7 +113,6 @@ export default function CourseDetailPage() {
     if (!chapterTitle.trim()) return;
     setSubmitting(true);
     try {
-      // Find current max order_index to place it at the end
       const maxIndex = course?.chapters?.reduce((max, ch) => Math.max(max, ch.order_index), 0) || 0;
       await api.post(`/courses/${id}/chapters`, {
         title: chapterTitle,
@@ -141,7 +143,6 @@ export default function CourseDetailPage() {
     if (!lessonTitle.trim() || targetChapterId === null) return;
     setSubmitting(true);
     try {
-      // Get current lessons in chapter to set order_index
       const ch = course?.chapters.find(c => c.id === targetChapterId);
       const maxIndex = ch?.lessons?.reduce((max, les) => Math.max(max, les.order_index), 0) || 0;
 
@@ -154,7 +155,6 @@ export default function CourseDetailPage() {
         document_url: lessonDoc || null,
       });
 
-      // Clear state
       setLessonTitle('');
       setLessonContent('');
       setLessonVideo('');
@@ -180,10 +180,10 @@ export default function CourseDetailPage() {
 
   if (authLoading || loading || !course) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0b0f19]">
+      <div className="min-h-dvh flex items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
-          <Loader2 className="h-10 w-10 animate-spin text-violet-500 mx-auto" />
-          <p className="text-sm text-slate-400">Loading course curriculum...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     );
@@ -192,119 +192,116 @@ export default function CourseDetailPage() {
   const isCourseOwner = user?.role === 'teacher' && course.teacher_id === user.id;
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] pb-20">
+    <div className="min-h-dvh bg-background text-foreground pb-20 transition-colors duration-300">
       
-      {/* Dynamic Radial Gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-violet-900/5 blur-[120px] pointer-events-none" />
+      {/* Decorative Gradient */}
+      <div className="absolute top-[-10%] left-[-10%] w-[300px] sm:w-[600px] h-[300px] sm:h-[600px] rounded-full bg-primary/5 blur-[100px] pointer-events-none" />
 
       {/* Header Bar */}
-      <header className="sticky top-0 z-40 w-full glass border-b border-white/5 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <button
-            onClick={() => router.push(user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student')}
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-6 w-6 text-violet-500" />
-            <span className="font-extrabold text-sm tracking-tight hidden sm:inline-block">SmartLearn</span>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       {/* Main Container */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10 relative z-10">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-8 sm:space-y-10 relative z-10 fade-in">
         
+        {/* Back Link */}
+        <div>
+          <button
+            onClick={() => router.push(user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student')}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-1 px-2 rounded-lg hover:bg-muted"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t('backToDashboard')}
+          </button>
+        </div>
+
         {/* Course Banner */}
-        <div className="glass p-6 sm:p-8 rounded-2xl border border-white/10 space-y-6">
+        <div className="glass p-6 sm:p-8 rounded-2xl border border-border space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div className="space-y-2">
-              <span className="text-xs font-semibold text-violet-400 capitalize">
+            <div className="space-y-2 min-w-0 flex-1">
+              <span className="text-xs font-bold text-primary capitalize">
                 Instructor: {course.teacher.full_name}
               </span>
-              <h1 className="text-3xl font-extrabold tracking-tight">{course.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight break-words">{course.title}</h1>
             </div>
             
             {/* Enrollment / Status Button */}
             {user?.role === 'student' && (
               isEnrolled ? (
-                <span className="px-4 py-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-xs font-bold shrink-0">
-                  ✓ Enrolled
+                <span className="px-4 py-2.5 bg-success/15 border border-success/20 text-success rounded-xl text-xs font-bold shrink-0 self-start">
+                  {t('enrolledBadge')}
                 </span>
               ) : (
                 <button
                   onClick={handleEnroll}
                   disabled={enrollLoading}
-                  className="px-6 py-3 bg-violet-600 hover:bg-violet-500 disabled:bg-violet-600/50 transition-colors rounded-xl text-sm font-bold shadow-lg shadow-violet-600/10 shrink-0"
+                  className="px-6 py-3 bg-primary hover:bg-primary/95 text-primary-foreground disabled:bg-primary/50 transition-all rounded-xl text-sm font-bold shadow-lg shadow-primary/10 shrink-0 self-start hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  {enrollLoading ? 'Enrolling...' : 'Enroll in Course'}
+                  {enrollLoading ? t('loading') : t('enrollInCourse')}
                 </button>
               )
             )}
 
             {isCourseOwner && (
-              <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-xs font-bold capitalize">
-                {course.status} Mode
+              <span className="px-3 py-1 bg-warning/15 border border-warning/20 text-warning rounded-full text-xs font-bold capitalize shrink-0 self-start">
+                {course.status === 'published' ? t('statusPublished') : course.status === 'draft' ? t('statusDraft') : t('statusArchived')}
               </span>
             )}
           </div>
 
-          <p className="text-sm text-slate-300 leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed break-words">
             {course.description || 'No course description provided.'}
           </p>
         </div>
 
         {/* Syllabus / Content Section */}
         <section className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center border-b border-border pb-4">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-violet-400" />
-              <h2 className="text-xl font-bold">Course Syllabus</h2>
+              <BookOpen className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-extrabold tracking-tight">{t('courseSyllabus')}</h2>
             </div>
             
             {isCourseOwner && (
               <button
                 onClick={() => setShowChapterModal(true)}
-                className="px-3.5 py-2 bg-violet-600 hover:bg-violet-500 transition-colors rounded-lg text-xs font-bold flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-primary hover:bg-primary/95 text-primary-foreground transition-all rounded-lg text-xs font-bold flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-primary/20"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Add Chapter
+                {t('addChapter')}
               </button>
             )}
           </div>
 
           {course.chapters.length === 0 ? (
-            <div className="glass p-12 text-center rounded-2xl border border-white/5">
-              <p className="text-slate-500 text-xs">No chapters have been added to this course curriculum yet.</p>
+            <div className="glass p-12 text-center rounded-2xl border border-border">
+              <p className="text-muted-foreground text-xs leading-relaxed">{t('noChapters')}</p>
             </div>
           ) : (
             <div className="space-y-6">
               {course.chapters.map((chapter) => (
-                <div key={chapter.id} className="glass rounded-xl p-5 border border-white/5 space-y-4">
+                <div key={chapter.id} className="glass rounded-xl p-5 border border-border space-y-4">
                   
                   {/* Chapter Header */}
-                  <div className="flex justify-between items-center border-b border-white/5 pb-3">
-                    <h3 className="font-extrabold text-base text-slate-200">
+                  <div className="flex justify-between items-center border-b border-border pb-3">
+                    <h3 className="font-extrabold text-base text-foreground break-words pr-2">
                       {chapter.title}
                     </h3>
                     
                     {isCourseOwner && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => {
                             setTargetChapterId(chapter.id);
                             setShowLessonModal(true);
                           }}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 rounded-md text-[10px] font-bold flex items-center gap-1"
+                          className="px-2.5 py-1.5 bg-muted hover:bg-muted/80 border border-border rounded-md text-[10px] font-bold flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
-                          <Plus className="h-3 w-3" /> Add Lesson
+                          <Plus className="h-3 w-3" /> {t('addLesson')}
                         </button>
                         <button
                           onClick={() => handleDeleteChapter(chapter.id)}
-                          className="p-1 hover:bg-red-500/10 hover:text-red-400 rounded-md transition-colors"
+                          className="p-1.5 hover:bg-danger/10 hover:text-danger rounded-md transition-colors border border-transparent hover:border-danger/20"
+                          title="Delete Chapter"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -314,19 +311,19 @@ export default function CourseDetailPage() {
 
                   {/* Lessons list */}
                   {chapter.lessons.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic pl-4">No lessons in this chapter yet.</p>
+                    <p className="text-xs text-muted-foreground italic pl-2">{t('noLessonsInChapter')}</p>
                   ) : (
-                    <div className="space-y-2.5 pl-2">
+                    <div className="space-y-2.5 pl-1">
                       {chapter.lessons.map((lesson) => {
                         const canAccessLesson = isCourseOwner || isEnrolled;
                         
                         return (
                           <div
                             key={lesson.id}
-                            className={`flex justify-between items-center p-3 rounded-lg border transition-all text-left ${
+                            className={`flex justify-between items-center p-3 rounded-xl border transition-all text-left ${
                               canAccessLesson
-                                ? 'bg-[#0f172a]/50 border-white/5 hover:border-violet-500/30 cursor-pointer'
-                                : 'bg-[#0f172a]/20 border-white/5 opacity-60'
+                                ? 'bg-muted/40 border-border hover:border-primary/40 cursor-pointer hover:bg-muted/60'
+                                : 'bg-muted/10 border-border/60 opacity-60'
                             }`}
                             onClick={() => {
                               if (canAccessLesson) {
@@ -334,31 +331,32 @@ export default function CourseDetailPage() {
                               }
                             }}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0 pr-4">
                               {lesson.video_url ? (
-                                <Video className="h-4 w-4 text-violet-400 shrink-0" />
+                                <Video className="h-4 w-4 text-primary shrink-0" />
                               ) : (
-                                <FileText className="h-4 w-4 text-indigo-400 shrink-0" />
+                                <FileText className="h-4 w-4 text-primary/80 shrink-0" />
                               )}
-                              <span className="text-sm font-medium">{lesson.title}</span>
+                              <span className="text-sm font-semibold truncate text-foreground">{lesson.title}</span>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 shrink-0">
                               {isCourseOwner && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDeleteLesson(lesson.id);
                                   }}
-                                  className="p-1 hover:bg-red-500/10 hover:text-red-400 rounded-md transition-colors"
+                                  className="p-1.5 hover:bg-danger/10 hover:text-danger rounded-md transition-colors border border-transparent hover:border-danger/20"
+                                  title="Delete Lesson"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
                               )}
                               {canAccessLesson ? (
-                                <ChevronRight className="h-4 w-4 text-slate-500" />
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               ) : (
-                                <Lock className="h-3.5 w-3.5 text-slate-600" />
+                                <Lock className="h-3.5 w-3.5 text-muted-foreground/60" />
                               )}
                             </div>
                           </div>
@@ -375,32 +373,32 @@ export default function CourseDetailPage() {
 
         {/* Modal: Add Chapter */}
         {showChapterModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-sm glass border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4">
-              <h3 className="text-lg font-bold">Add New Chapter</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm fade-in">
+            <div className="w-full max-w-sm glass border border-border rounded-2xl p-6 shadow-2xl space-y-4 bg-card text-foreground">
+              <h3 className="text-lg font-bold">{t('addChapter')}</h3>
               <form onSubmit={handleAddChapter} className="space-y-4">
                 <input
                   type="text"
-                  placeholder="Chapter Title (e.g. Chapter 1: Introduction)"
+                  placeholder={t('chapterTitlePlaceholder')}
                   value={chapterTitle}
                   onChange={(e) => setChapterTitle(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                   required
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2 border-t border-border/60 pt-3">
                   <button
                     type="button"
                     onClick={() => setShowChapterModal(false)}
-                    className="flex-1 py-2 rounded-lg border border-white/5 text-xs font-semibold hover:bg-white/5"
+                    className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-xs font-bold"
+                    className="flex-1 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl text-xs font-bold transition-colors"
                   >
-                    {submitting ? 'Adding...' : 'Add Chapter'}
+                    {submitting ? t('adding') : t('addChapter')}
                   </button>
                 </div>
               </form>
@@ -410,70 +408,70 @@ export default function CourseDetailPage() {
 
         {/* Modal: Add Lesson */}
         {showLessonModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="w-full max-w-md glass border border-white/10 rounded-2xl p-6 shadow-2xl space-y-4">
-              <h3 className="text-lg font-bold">Add Lesson to Chapter</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm fade-in">
+            <div className="w-full max-w-md glass border border-border rounded-2xl p-6 shadow-2xl space-y-4 bg-card text-foreground">
+              <h3 className="text-lg font-bold">{t('addLesson')}</h3>
               <form onSubmit={handleAddLesson} className="space-y-4">
                 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400">Lesson Title</label>
+                  <label className="text-xs text-muted-foreground font-semibold">{t('lessonTitleLabel')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. 1.1 Overview of Relational Databases"
+                    placeholder={t('lessonTitlePlaceholder')}
                     value={lessonTitle}
                     onChange={(e) => setLessonTitle(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full px-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                     required
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400">Lesson Content (Markdown support)</label>
+                  <label className="text-xs text-muted-foreground font-semibold">{t('lessonContentLabel')}</label>
                   <textarea
-                    placeholder="Write your text lesson notes here..."
+                    placeholder={t('lessonContentPlaceholder')}
                     rows={4}
                     value={lessonContent}
                     onChange={(e) => setLessonContent(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full px-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400">Video Link (Optional URL)</label>
+                  <label className="text-xs text-muted-foreground font-semibold">{t('videoLinkLabel')}</label>
                   <input
                     type="text"
                     placeholder="e.g. https://youtube.com/watch?v=..."
                     value={lessonVideo}
                     onChange={(e) => setLessonVideo(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full px-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-slate-400">Document Link (Optional URL)</label>
+                  <label className="text-xs text-muted-foreground font-semibold">{t('docLinkLabel')}</label>
                   <input
                     type="text"
                     placeholder="e.g. https://drive.google.com/..."
                     value={lessonDoc}
                     onChange={(e) => setLessonDoc(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500 transition-colors"
+                    className="w-full px-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                   />
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-3 border-t border-border/60">
                   <button
                     type="button"
                     onClick={() => setShowLessonModal(false)}
-                    className="flex-1 py-2 rounded-lg border border-white/5 text-xs font-semibold hover:bg-white/5"
+                    className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 py-2 bg-violet-600 hover:bg-violet-500 rounded-lg text-xs font-bold"
+                    className="flex-1 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl text-xs font-bold transition-colors"
                   >
-                    {submitting ? 'Adding...' : 'Add Lesson'}
+                    {submitting ? t('adding') : t('addLesson')}
                   </button>
                 </div>
               </form>
