@@ -18,7 +18,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, role: string) => Promise<void>;
+  register: (payload: any) => Promise<any>;
   logout: () => void;
 }
 
@@ -91,20 +91,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string, fullName: string, role: string) => {
+  const register = async (payload: any) => {
     setIsLoading(true);
     try {
-      await api.post('/auth/register', {
-        email,
-        password,
-        full_name: fullName,
-        role,
-      });
-      // Auto login after registration
-      await login(email, password);
+      const response = await api.post('/auth/register', payload);
+      return response.data;
     } catch (error) {
       setIsLoading(false);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

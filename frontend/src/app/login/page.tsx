@@ -26,6 +26,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<LoginSchemaType>({
     resolver: zodResolver(loginSchema),
@@ -70,9 +71,23 @@ export default function LoginPage() {
 
           {/* Global error display */}
           {errorMsg && (
-            <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/25 text-danger text-sm rounded-lg">
-              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>{errorMsg}</span>
+            <div className="flex flex-col gap-1 p-3 bg-danger/10 border border-danger/25 text-danger text-sm rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  {errorMsg.toLowerCase().includes("verify your email") 
+                    ? t('loginUnverifiedError') 
+                    : errorMsg}
+                </span>
+              </div>
+              {errorMsg.toLowerCase().includes("verify your email") && (
+                <Link
+                  href={`/verify-email?email=${encodeURIComponent(watch('email') || '')}`}
+                  className="ml-6 text-primary hover:underline font-semibold text-xs mt-1 block"
+                >
+                  {t('clickToVerifyLink')} →
+                </Link>
+              )}
             </div>
           )}
 

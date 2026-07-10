@@ -202,14 +202,41 @@ export default function TeacherDashboard() {
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{t('welcomeTeacher', { name: user?.full_name || '' })}</h1>
           </div>
           
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground transition-all text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/10 shrink-0 hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <Plus className="h-4 w-4" />
-            {t('createCourse')}
-          </button>
+          {user?.teacher_profile?.approval_status === 'approved' && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-primary hover:bg-primary/95 text-primary-foreground transition-all text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/10 shrink-0 hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              <Plus className="h-4 w-4" />
+              {t('createCourse')}
+            </button>
+          )}
         </div>
+
+        {/* Approval status banner */}
+        {user?.teacher_profile?.approval_status === 'pending' && (
+          <div className="p-4 bg-warning/10 border border-warning/25 text-warning rounded-xl flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm">{language === 'en' ? 'Pending Verification' : 'Chờ phê duyệt'}</p>
+              <p className="text-xs mt-0.5 leading-relaxed">{t('teacherPendingMessage')}</p>
+            </div>
+          </div>
+        )}
+
+        {user?.teacher_profile?.approval_status === 'rejected' && (
+          <div className="p-4 bg-danger/10 border border-danger/25 text-danger rounded-xl flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-sm">{language === 'en' ? 'Registration Rejected' : 'Yêu cầu bị từ chối'}</p>
+              <p className="text-xs mt-0.5 leading-relaxed">
+                {language === 'en' 
+                  ? `Your teacher registration request was rejected. Reason: ${user?.teacher_profile?.rejection_reason || 'No reason provided.'}`
+                  : `Yêu cầu đăng ký giáo viên của bạn đã bị từ chối. Lý do: ${user?.teacher_profile?.rejection_reason || 'Không có lý do được cung cấp.'}`}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Course Grid */}
         <section className="space-y-6">
