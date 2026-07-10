@@ -55,19 +55,32 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Inactive user"
         )
+    if not user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email address not verified."
+        )
     return user
+
+
+from app.models.profile import TeacherApprovalStatus
 
 
 def get_current_active_teacher(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Enforce that the current user has the Teacher role.
+    Enforce that the current user has the Teacher role and is approved by administrators.
     """
     if current_user.role != UserRole.TEACHER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have enough privileges (Teacher role required)",
+        )
+    if not current_user.teacher_profile or current_user.teacher_profile.approval_status != TeacherApprovalStatus.APPROVED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Teacher account is pending administrator approval.",
         )
     return current_user
 

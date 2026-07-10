@@ -1,8 +1,11 @@
 from typing import Optional
 from sqlalchemy.orm import Session
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password
+
+
+from app.models.profile import UserProfile, TeacherProfile, TeacherApprovalStatus
 
 
 def get_user(db: Session, user_id: int) -> Optional[User]:
@@ -16,15 +19,42 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
 
 
 def create_user(db: Session, obj_in: UserCreate) -> User:
-    """Create a new user, hashing the password before database storage."""
+    """Create a new user, hashing the password before database storage, and generate profiles."""
     db_obj = User(
         email=obj_in.email,
         hashed_password=get_password_hash(obj_in.password),
         full_name=obj_in.full_name,
         role=obj_in.role,
-        is_active=True
+        is_active=True,
+        email_verified=False,
+        is_approved=(obj_in.role != UserRole.TEACHER)
     )
     db.add(db_obj)
+    db.flush()
+
+    # Create User Profile
+    profile_obj = UserProfile(
+        user_id=db_obj.id,
+        full_name=obj_in.full_name,
+        phone_number=obj_in.phone_number,
+        date_of_birth=obj_in.date_of_birth
+    )
+    db.add(profile_obj)
+
+    # Create Teacher Profile if role is teacher
+    if obj_in.role == UserRole.TEACHER:
+        teacher_profile_obj = TeacherProfile(
+            user_id=db_obj.id,
+            faculty=obj_in.faculty,
+            department=obj_in.department,
+            specialization=obj_in.specialization,
+            academic_title=obj_in.academic_title,
+            teacher_code=obj_in.teacher_code,
+            bio=obj_in.bio,
+            approval_status=TeacherApprovalStatus.PENDING
+        )
+        db.add(teacher_profile_obj)
+
     db.commit()
     db.refresh(db_obj)
     return db_obj

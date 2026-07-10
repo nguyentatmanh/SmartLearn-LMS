@@ -19,11 +19,15 @@ class User(Base):
     full_name = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.STUDENT, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    email_verified = Column(Boolean, default=False, nullable=False)
+    is_approved = Column(Boolean, default=False, nullable=False)
     
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Relationships
+    profile = relationship("UserProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    teacher_profile = relationship("TeacherProfile", uselist=False, foreign_keys="[TeacherProfile.user_id]", back_populates="user", cascade="all, delete-orphan")
     courses = relationship("Course", back_populates="teacher", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="student", cascade="all, delete-orphan")
     lesson_progresses = relationship("LessonProgress", back_populates="student", cascade="all, delete-orphan")

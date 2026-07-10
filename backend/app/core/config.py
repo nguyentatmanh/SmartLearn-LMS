@@ -11,6 +11,17 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-for-smartlearn-lms-development-only")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # Short-lived access token as requested
     AUTO_CREATE_TABLES: bool = False
+    
+    DEBUG: bool = True
+    ENVIRONMENT: str = "development"
+
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: Optional[int] = None
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
+    SMTP_FROM_NAME: str = "SmartLearn LMS"
+    SMTP_USE_TLS: bool = True
 
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "db")
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
