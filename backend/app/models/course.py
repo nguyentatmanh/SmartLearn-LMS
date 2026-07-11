@@ -17,7 +17,7 @@ class Course(Base):
     title = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=True)
     thumbnail_url = Column(String, nullable=True)
-    status = Column(Enum(CourseStatus), default=CourseStatus.DRAFT, nullable=False)
+    status = Column(Enum(CourseStatus, values_callable=lambda x: [e.value for e in x]), default=CourseStatus.DRAFT, nullable=False)
     
     teacher_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
