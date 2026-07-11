@@ -47,6 +47,15 @@ Best regards,
 SmartLearn LMS Team
 """
 
+    is_dev = settings.DEBUG or settings.ENVIRONMENT == "development"
+    if is_dev:
+        print(f"\n[DEVELOPMENT OTP LOG]")
+        print("=============================================================")
+        print(f"TO: {to_email}")
+        print(f"SUBJECT: {subject}")
+        print(f"BODY:\n{text_content}")
+        print("=============================================================\n")
+
     # Check if SMTP configuration exists
     has_smtp = all([
         settings.SMTP_HOST,
@@ -57,15 +66,7 @@ SmartLearn LMS Team
     ])
 
     if not has_smtp:
-        # Fallback to console print if debug mode is active
-        is_dev = settings.DEBUG or settings.ENVIRONMENT == "development"
         if is_dev:
-            print(f"\n[DEVELOPMENT EMAIL FALLBACK WARNING: SMTP Credentials Not Configured]")
-            print("=============================================================")
-            print(f"TO: {to_email}")
-            print(f"SUBJECT: {subject}")
-            print(f"BODY:\n{text_content}")
-            print("=============================================================\n")
             return True
         else:
             logger.error("SMTP configuration missing in non-development mode. Cannot send OTP email.")

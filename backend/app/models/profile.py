@@ -38,7 +38,7 @@ class TeacherProfile(Base):
     teacher_code = Column(String, unique=True, nullable=True, index=True)
     bio = Column(Text, nullable=True)
     approval_status = Column(
-        Enum(TeacherApprovalStatus, native_enum=False), 
+        Enum(TeacherApprovalStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]), 
         default=TeacherApprovalStatus.PENDING, 
         nullable=False,
         index=True

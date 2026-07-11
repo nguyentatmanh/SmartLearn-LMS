@@ -59,6 +59,7 @@ def register_user(
     }
 
 
+
 @router.post("/login", response_model=Token)
 def login_access_token(
     db: Session = Depends(get_db),
