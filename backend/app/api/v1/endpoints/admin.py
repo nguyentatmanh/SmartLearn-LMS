@@ -1,22 +1,67 @@
 from typing import Any, List, Optional
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from app.core.database import get_db
 from app.api import deps
 from app.models.user import User, UserRole
 from app.models.profile import TeacherProfile, UserProfile, TeacherApprovalStatus
+from app.models.course import Course, CourseStatus
+from app.models.enrollment import Enrollment
 from app.schemas.user import (
     UserResponse, 
     TeacherRejectRequest, 
     UserActiveToggleRequest,
-    UserRolePatchRequest
+    UserRolePatchRequest,
+    AdminUserResponse
+)
+from app.schemas.course import (
+    AdminCourseResponse,
+    CourseStatusPatchRequest,
+    CourseDetailResponse
 )
 
 router = APIRouter()
 
 
-@router.get("/users", response_model=List[UserResponse])
+def serialize_user(user: User) -> dict:
+    profile_data = None
+    if user.profile:
+        profile_data = {
+            "full_name": user.profile.full_name,
+            "phone_number": user.profile.phone_number,
+            "date_of_birth": user.profile.date_of_birth
+        }
+        
+    teacher_profile_data = None
+    if user.teacher_profile:
+        teacher_profile_data = {
+            "faculty": user.teacher_profile.faculty,
+            "department": user.teacher_profile.department,
+            "specialization": user.teacher_profile.specialization,
+            "academic_title": user.teacher_profile.academic_title,
+            "teacher_code": user.teacher_profile.teacher_code,
+            "bio": user.teacher_profile.bio,
+            "approval_status": user.teacher_profile.approval_status.value if hasattr(user.teacher_profile.approval_status, "value") else user.teacher_profile.approval_status,
+            "rejection_reason": user.teacher_profile.rejection_reason
+        }
+        
+    return {
+        "id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "is_active": user.is_active,
+        "email_verified": user.email_verified,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at,
+        "profile": profile_data,
+        "teacher_profile": teacher_profile_data,
+        "enrolled_courses_count": len(user.enrollments) if user.role == UserRole.STUDENT else 0,
+        "created_courses_count": len(user.courses) if user.role == UserRole.TEACHER else 0
+    }
+
+
+@router.get("/users", response_model=List[AdminUserResponse])
 def read_users(
     db: Session = Depends(get_db),
     skip: int = 0,
@@ -24,10 +69,51 @@ def read_users(
     current_admin: User = Depends(deps.get_current_active_admin)
 ) -> Any:
     """
-    List all users with profile and teacher status. Only for administrators.
+    List all users with profile, teacher status, and course counts. Only for administrators.
     """
-    users = db.query(User).order_by(User.created_at.desc()).offset(skip).limit(limit).all()
-    return users
+    users = (
+        db.query(User)
+        .options(
+            selectinload(User.profile),
+            selectinload(User.teacher_profile),
+            selectinload(User.courses),
+            selectinload(User.enrollments)
+        )
+        .order_by(User.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return [serialize_user(u) for u in users]
+
+
+
+@router.get("/users/{user_id}", response_model=AdminUserResponse)
+def read_user_detail(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    """
+    Retrieve single user details with profile and course counts. Only for admins.
+    """
+    user = (
+        db.query(User)
+        .options(
+            selectinload(User.profile),
+            selectinload(User.teacher_profile),
+            selectinload(User.courses),
+            selectinload(User.enrollments)
+        )
+        .filter(User.id == user_id)
+        .first()
+    )
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found."
+        )
+    return serialize_user(user)
 
 
 @router.get("/teacher-requests", response_model=List[UserResponse])
@@ -43,6 +129,10 @@ def read_pending_teachers(
     users = (
         db.query(User)
         .join(TeacherProfile, User.id == TeacherProfile.user_id)
+        .options(
+            selectinload(User.profile),
+            selectinload(User.teacher_profile)
+        )
         .filter(User.role == UserRole.TEACHER)
         .filter(TeacherProfile.approval_status == TeacherApprovalStatus.PENDING)
         .order_by(User.created_at.desc())
@@ -136,7 +226,7 @@ def reject_teacher(
     return teacher
 
 
-@router.patch("/users/{user_id}/role", response_model=UserResponse)
+@router.patch("/users/{user_id}/role", response_model=AdminUserResponse)
 def update_user_role(
     user_id: int,
     role_in: UserRolePatchRequest,
@@ -146,34 +236,41 @@ def update_user_role(
     """
     Safely modify user roles. Only admins can execute this.
     """
-    user = db.query(User).filter(User.id == user_id).first()
+    user = (
+        db.query(User)
+        .options(
+            selectinload(User.profile),
+            selectinload(User.teacher_profile),
+            selectinload(User.courses),
+            selectinload(User.enrollments)
+        )
+        .filter(User.id == user_id)
+        .first()
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         )
     
-    # Check de-admin safety
-    if user.id == current_admin.id and role_in.role != UserRole.ADMIN:
-        other_active_admins = (
-            db.query(User)
-            .filter(User.role == UserRole.ADMIN, User.is_active == True, User.id != current_admin.id)
-            .count()
-        )
-        if other_active_admins == 0:
+    # Check if demoting this admin user would leave 0 active admins
+    if user.role == UserRole.ADMIN and role_in.role != UserRole.ADMIN:
+        active_admins_count = db.query(User).filter(User.role == UserRole.ADMIN, User.is_active == True).count()
+        if active_admins_count <= 1:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot change role of the only active administrator."
+                detail="Cannot demote the last active administrator."
             )
 
     user.role = role_in.role
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    
+    return serialize_user(user)
 
 
-@router.patch("/users/{user_id}/active", response_model=UserResponse)
+@router.patch("/users/{user_id}/active", response_model=AdminUserResponse)
 def toggle_user_active(
     user_id: int,
     active_in: UserActiveToggleRequest,
@@ -182,30 +279,205 @@ def toggle_user_active(
 ) -> Any:
     """
     Deactivate or activate a user account.
-    Prevents self-deactivation if they are the last active admin.
     """
-    user = db.query(User).filter(User.id == user_id).first()
+    user = (
+        db.query(User)
+        .options(
+            selectinload(User.profile),
+            selectinload(User.teacher_profile),
+            selectinload(User.courses),
+            selectinload(User.enrollments)
+        )
+        .filter(User.id == user_id)
+        .first()
+    )
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found."
         )
 
-    # Self deactivation check
-    if user.id == current_admin.id and not active_in.is_active:
-        other_active_admins = (
-            db.query(User)
-            .filter(User.role == UserRole.ADMIN, User.is_active == True, User.id != current_admin.id)
-            .count()
-        )
-        if other_active_admins == 0:
+    # Check if deactivating this admin user would leave 0 active admins
+    if user.role == UserRole.ADMIN and not active_in.is_active:
+        active_admins_count = db.query(User).filter(User.role == UserRole.ADMIN, User.is_active == True).count()
+        if active_admins_count <= 1:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot deactivate the only active administrator."
+                detail="Cannot deactivate the last active administrator."
             )
 
     user.is_active = active_in.is_active
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    
+    return serialize_user(user)
+
+
+@router.get("/courses", response_model=List[AdminCourseResponse])
+def read_admin_courses(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 100,
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    """
+    List all courses. Only for admins.
+    """
+    courses = (
+        db.query(Course)
+        .options(
+            selectinload(Course.lessons),
+            selectinload(Course.enrollments),
+            selectinload(Course.teacher)
+        )
+        .order_by(Course.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    result = []
+    for c in courses:
+        result.append({
+            "id": c.id,
+            "title": c.title,
+            "description": c.description,
+            "thumbnail_url": c.thumbnail_url,
+            "status": c.status,
+            "teacher_id": c.teacher_id,
+            "created_at": c.created_at,
+            "updated_at": c.updated_at,
+            "teacher": {
+                "id": c.teacher.id,
+                "full_name": c.teacher.full_name,
+                "email": c.teacher.email
+            },
+            "lessons_count": len(c.lessons),
+            "enrollments_count": len(c.enrollments)
+        })
+    return result
+
+
+@router.get("/courses/{course_id}", response_model=CourseDetailResponse)
+def read_admin_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    """
+    Retrieve single course details. Only for admins.
+    """
+    course = (
+        db.query(Course)
+        .options(
+            selectinload(Course.teacher),
+            selectinload(Course.chapters),
+            selectinload(Course.lessons)
+        )
+        .filter(Course.id == course_id)
+        .first()
+    )
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found."
+        )
+    return course
+
+
+@router.patch("/courses/{course_id}/status", response_model=AdminCourseResponse)
+def update_admin_course_status(
+    course_id: int,
+    status_in: CourseStatusPatchRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    """
+    Modify course status (draft / published / archived). Only for admins.
+    """
+    course = (
+        db.query(Course)
+        .options(
+            selectinload(Course.lessons),
+            selectinload(Course.enrollments),
+            selectinload(Course.teacher)
+        )
+        .filter(Course.id == course_id)
+        .first()
+    )
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found."
+        )
+    
+    course.status = status_in.status
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    
+    return {
+        "id": course.id,
+        "title": course.title,
+        "description": course.description,
+        "thumbnail_url": course.thumbnail_url,
+        "status": course.status,
+        "teacher_id": course.teacher_id,
+        "created_at": course.created_at,
+        "updated_at": course.updated_at,
+        "teacher": {
+            "id": course.teacher.id,
+            "full_name": course.teacher.full_name,
+            "email": course.teacher.email
+        },
+        "lessons_count": len(course.lessons),
+        "enrollments_count": len(course.enrollments)
+    }
+
+
+@router.delete("/courses/{course_id}", response_model=AdminCourseResponse)
+def delete_admin_course(
+    course_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    """
+    Delete a course. Only for admins.
+    """
+    course = (
+        db.query(Course)
+        .options(
+            selectinload(Course.lessons),
+            selectinload(Course.enrollments),
+            selectinload(Course.teacher)
+        )
+        .filter(Course.id == course_id)
+        .first()
+    )
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Course not found."
+        )
+    
+    resp_obj = {
+        "id": course.id,
+        "title": course.title,
+        "description": course.description,
+        "thumbnail_url": course.thumbnail_url,
+        "status": course.status,
+        "teacher_id": course.teacher_id,
+        "created_at": course.created_at,
+        "updated_at": course.updated_at,
+        "teacher": {
+            "id": course.teacher.id,
+            "full_name": course.teacher.full_name,
+            "email": course.teacher.email
+        },
+        "lessons_count": len(course.lessons),
+        "enrollments_count": len(course.enrollments)
+    }
+    
+    db.delete(course)
+    db.commit()
+    return resp_obj

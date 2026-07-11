@@ -51,3 +51,13 @@ class CourseDetailResponse(CourseResponse):
     teacher: CourseTeacherResponse
     chapters: List[ChapterWithLessonsResponse] = []
 
+
+class AdminCourseResponse(CourseResponse):
+    teacher: CourseTeacherResponse
+    enrollments_count: int
+    lessons_count: int
+
+
+class CourseStatusPatchRequest(BaseModel):
+    status: CourseStatus
+

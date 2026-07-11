@@ -156,3 +156,8 @@ class UserActiveToggleRequest(BaseModel):
 
 class UserRolePatchRequest(BaseModel):
     role: UserRole
+
+
+class AdminUserResponse(UserResponse):
+    enrolled_courses_count: Optional[int] = None
+    created_courses_count: Optional[int] = None
