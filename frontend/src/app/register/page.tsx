@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -71,6 +71,51 @@ const registerSchema = z.object({
 type RegisterSchemaType = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  return (
+    <main className="min-h-dvh flex flex-col bg-background text-foreground transition-colors duration-300">
+      {isMounted ? (
+        <AppHeader />
+      ) : (
+        <div className="h-16 w-full glass border-b border-border backdrop-blur-md" />
+      )}
+
+      <div className="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8 relative">
+        {isMounted && (
+          <>
+            <div className="absolute top-1/4 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+            <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+          </>
+        )}
+
+        <div className="w-full max-w-lg glass rounded-2xl p-6 sm:p-8 border border-border relative shadow-xl space-y-6 my-8">
+          {!isMounted ? (
+            <div className="space-y-6">
+              <div className="mx-auto h-10 w-10 animate-pulse rounded-full bg-black/10 dark:bg-white/10" />
+              <div className="mx-auto h-8 w-56 animate-pulse rounded-lg bg-black/10 dark:bg-white/10" />
+              <div className="mx-auto h-5 w-80 max-w-full animate-pulse rounded-lg bg-black/10 dark:bg-white/10" />
+              <div className="mt-6 space-y-4">
+                <div className="h-12 animate-pulse rounded-xl bg-black/10 dark:bg-white/10" />
+                <div className="h-12 animate-pulse rounded-xl bg-black/10 dark:bg-white/10" />
+                <div className="h-12 animate-pulse rounded-xl bg-black/10 dark:bg-white/10" />
+                <div className="h-12 animate-pulse rounded-xl bg-black/10 dark:bg-white/10" />
+              </div>
+            </div>
+          ) : (
+            <RegisterFormContent />
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function RegisterFormContent() {
   const { register: registerUser } = useAuth();
   const { t, language } = usePreference();
   const router = useRouter();
@@ -130,10 +175,119 @@ export default function RegisterPage() {
       }
     } catch (err: any) {
       console.error(err);
-      if (err.response && err.response.data && err.response.data.detail) {
-        setErrorMsg(err.response.data.detail);
+      if (!err.response || !err.response.data) {
+        setErrorMsg(
+          language === 'en'
+            ? 'Registration failed. Please verify your connection.'
+            : 'Đăng ký thất bại. Vui lòng kiểm tra kết nối mạng.'
+        );
+        return;
+      }
+
+      const detail = err.response.data.detail;
+      if (!detail) {
+        setErrorMsg(
+          language === 'en'
+            ? 'Registration failed. Please make sure credentials are correct and unique.'
+            : 'Đăng ký thất bại. Vui lòng kiểm tra lại thông tin đăng ký.'
+        );
+        return;
+      }
+
+      if (typeof detail === 'string') {
+        const detailLower = detail.toLowerCase();
+        if (detailLower.includes('email already registered') || detailLower.includes('already exists') || detailLower.includes('registered')) {
+          setErrorMsg(
+            language === 'en'
+              ? 'This email address is already registered. Please log in or use another email.'
+              : 'Địa chỉ email này đã được đăng ký. Vui lòng đăng nhập hoặc sử dụng email khác.'
+          );
+        } else if (detailLower.includes('admin')) {
+          setErrorMsg(
+            language === 'en'
+              ? 'Public registration of administrator accounts is not permitted.'
+              : 'Hệ thống không cho phép đăng ký tài khoản quản trị viên công khai.'
+          );
+        } else {
+          setErrorMsg(detail);
+        }
+      } else if (Array.isArray(detail)) {
+        const messages = detail.map((errItem: any) => {
+          let msg = errItem.msg || '';
+          if (msg.startsWith('Value error, ')) {
+            msg = msg.replace('Value error, ', '');
+          }
+
+          const msgLower = msg.toLowerCase();
+          const field = errItem.loc && errItem.loc.length > 1 ? errItem.loc[1] : '';
+
+          if (msgLower.includes('uppercase')) {
+            return language === 'en'
+              ? 'Password must contain at least one uppercase letter.'
+              : 'Mật khẩu phải chứa ít nhất một chữ cái in hoa.';
+          }
+          if (msgLower.includes('lowercase')) {
+            return language === 'en'
+              ? 'Password must contain at least one lowercase letter.'
+              : 'Mật khẩu phải chứa ít nhất một chữ cái in thường.';
+          }
+          if (msgLower.includes('at least 8 characters')) {
+            return language === 'en'
+              ? 'Password must be at least 8 characters long.'
+              : 'Mật khẩu phải dài ít nhất 8 ký tự.';
+          }
+          if (msgLower.includes('number') || msgLower.includes('digit')) {
+            if (field === 'phone_number') {
+              return language === 'en'
+                ? 'Phone number must be between 9 and 15 digits.'
+                : 'Số điện thoại phải từ 9 đến 15 chữ số.';
+            }
+            return language === 'en'
+              ? 'Password must contain at least one number.'
+              : 'Mật khẩu phải chứa ít nhất một chữ số.';
+          }
+          if (msgLower.includes('special character')) {
+            return language === 'en'
+              ? 'Password must contain at least one special character.'
+              : 'Mật khẩu phải chứa ít nhất một ký tự đặc biệt.';
+          }
+          if (msgLower.includes('future') || msgLower.includes('past')) {
+            return language === 'en'
+              ? 'Date of birth must be in the past.'
+              : 'Ngày sinh phải là một ngày trong quá khứ.';
+          }
+          if (msgLower.includes('phone') || msgLower.includes('invalid phone')) {
+            return language === 'en'
+              ? 'Invalid phone number format.'
+              : 'Định dạng số điện thoại không hợp lệ.';
+          }
+          if (msgLower.includes('faculty')) {
+            return language === 'en'
+              ? 'Faculty is required for teachers.'
+              : 'Thông tin Khoa là bắt buộc đối với giáo viên.';
+          }
+          if (msgLower.includes('department')) {
+            return language === 'en'
+              ? 'Department is required for teachers.'
+              : 'Thông tin Bộ môn là bắt buộc đối với giáo viên.';
+          }
+          if (msgLower.includes('specialization')) {
+            return language === 'en'
+              ? 'Specialization is required for teachers.'
+              : 'Thông tin Chuyên ngành là bắt buộc đối với giáo viên.';
+          }
+          if (msgLower.includes('blank') || msgLower.includes('empty')) {
+            if (field === 'full_name') {
+              return language === 'en'
+                ? 'Full name cannot be blank.'
+                : 'Họ và tên không được để trống.';
+            }
+          }
+          return msg;
+        });
+        setErrorMsg(messages.join('\n'));
       } else {
-        setErrorMsg('Registration failed. Please make sure credentials are correct and unique.');
+        setErrorMsg(JSON.stringify(detail));
       }
     } finally {
       setIsSubmitting(false);
@@ -141,15 +295,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-dvh flex flex-col bg-background text-foreground transition-colors duration-300">
-      <AppHeader />
-
-      <div className="flex-grow flex items-center justify-center p-4 sm:p-6 lg:p-8 relative">
-        {/* Background decoration */}
-        <div className="absolute top-1/4 left-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
-
-        <div className="w-full max-w-lg glass rounded-2xl p-6 sm:p-8 border border-border relative shadow-xl space-y-6 fade-in my-8">
+    <div className="space-y-6 fade-in">
           
           {/* Logo and header */}
           <div className="text-center space-y-2">
@@ -162,7 +308,7 @@ export default function RegisterPage() {
 
           {/* Global error display */}
           {errorMsg && (
-            <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/25 text-danger text-sm rounded-lg">
+            <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/25 text-danger text-sm rounded-lg whitespace-pre-line text-left">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
               <span>{errorMsg}</span>
             </div>
@@ -216,7 +362,7 @@ export default function RegisterPage() {
                   <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground/60" />
                   <input
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t('emailPlaceholder')}
                     {...register('email')}
                     className="w-full pl-10 pr-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                   />
@@ -235,7 +381,7 @@ export default function RegisterPage() {
                     <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground/60" />
                     <input
                       type="password"
-                      placeholder="••••••••"
+                      placeholder={t('passwordPlaceholder')}
                       {...register('password')}
                       className="w-full pl-10 pr-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                     />
@@ -254,7 +400,7 @@ export default function RegisterPage() {
                     <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground/60" />
                     <input
                       type="password"
-                      placeholder="••••••••"
+                      placeholder={t('confirmPasswordPlaceholder')}
                       {...register('confirmPassword')}
                       className="w-full pl-10 pr-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                     />
@@ -280,7 +426,7 @@ export default function RegisterPage() {
                   <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground/60" />
                   <input
                     type="text"
-                    placeholder="John Doe"
+                    placeholder={t('fullNamePlaceholder')}
                     {...register('fullName')}
                     className="w-full pl-10 pr-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                   />
@@ -461,8 +607,6 @@ export default function RegisterPage() {
             </Link>
           </p>
 
-        </div>
-      </div>
     </div>
   );
 }
