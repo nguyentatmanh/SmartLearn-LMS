@@ -194,6 +194,27 @@ export const translations = {
     adminLabelApproved: "Approved",
     adminLabelPending: "Pending",
     adminLabelRejected: "Rejected",
+    
+    // UI Upgrade keys
+    completedLessons: "Completed Lessons",
+    learningProgress: "Learning Progress",
+    availableCourses: "Available Courses",
+    greetingFallbackStudent: "Student",
+    greetingFallbackTeacher: "Teacher",
+    greetingFallbackAdmin: "Admin",
+    welcomeAdmin: "Welcome, {name}",
+    adminTeacherRequests: "Teacher Requests",
+    adminTotalUsers: "Total Users",
+    adminStudents: "Students",
+    adminTeachers: "Teachers",
+    emailVerified: "Verified",
+    emailUnverified: "Unverified",
+    emptyNoEnrolledTitle: "Start Your Learning Journey",
+    emptyNoEnrolledDesc: "You haven't enrolled in any courses yet. Browse the catalog below to find your first course!",
+    emptyNoCatalogTitle: "No Courses Found",
+    emptyNoCatalogDesc: "There are no courses matching your search or filters at the moment.",
+    emptyNoCoursesCreatedTitle: "No Courses Created Yet",
+    emptyNoCoursesCreatedDesc: "Get started by creating your very first course curriculum and syllabus lessons.",
   },
   vi: {
     // General
@@ -392,6 +413,27 @@ export const translations = {
     adminLabelApproved: "Đã duyệt",
     adminLabelPending: "Chờ duyệt",
     adminLabelRejected: "Bị từ chối",
+    
+    // UI Upgrade keys
+    completedLessons: "Bài học hoàn thành",
+    learningProgress: "Tiến độ học tập",
+    availableCourses: "Khóa học có sẵn",
+    greetingFallbackStudent: "Học viên",
+    greetingFallbackTeacher: "Giảng viên",
+    greetingFallbackAdmin: "Quản trị viên",
+    welcomeAdmin: "Chào mừng, {name}",
+    adminTeacherRequests: "Yêu cầu giáo viên",
+    adminTotalUsers: "Tổng người dùng",
+    adminStudents: "Học viên",
+    adminTeachers: "Giảng viên",
+    emailVerified: "Đã xác minh",
+    emailUnverified: "Chưa xác minh",
+    emptyNoEnrolledTitle: "Bắt đầu hành trình học tập",
+    emptyNoEnrolledDesc: "Bạn chưa đăng ký khóa học nào. Hãy khám phá danh mục bên dưới để bắt đầu bài học đầu tiên!",
+    emptyNoCatalogTitle: "Không tìm thấy khóa học",
+    emptyNoCatalogDesc: "Hiện tại chưa có khóa học nào phù hợp với tìm kiếm hoặc bộ lọc của bạn.",
+    emptyNoCoursesCreatedTitle: "Chưa có khóa học nào",
+    emptyNoCoursesCreatedDesc: "Bắt đầu hành trình giảng dạy bằng cách tạo chương trình học và bài học đầu tiên của bạn.",
   }
 };
 
