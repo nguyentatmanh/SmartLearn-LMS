@@ -31,6 +31,8 @@ interface CourseDetail {
   chapters: Chapter[];
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function LessonViewerPage() {
   const { id: courseId, lessonId } = useParams();
   const { user, isLoading: authLoading } = useAuth();

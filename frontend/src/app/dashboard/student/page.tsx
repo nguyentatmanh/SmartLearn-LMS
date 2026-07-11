@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { usePreference } from '@/context/PreferenceContext';
 import api from '@/lib/api';
@@ -40,6 +41,8 @@ export default function StudentDashboard() {
         router.push('/login');
       } else if (user.role === 'teacher') {
         router.push('/dashboard/teacher');
+      } else if (user.role === 'admin') {
+        router.push('/dashboard/admin');
       }
     }
   }, [user, authLoading, router, isMounted]);
@@ -122,12 +125,10 @@ export default function StudentDashboard() {
       
       {/* Mobile Top Header */}
       <header className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="h-8 w-8 text-primary" />
-          <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-            {t('appName')}
-          </span>
-        </div>
+        <Link href="/" className="flex items-center gap-2">
+          <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
+          <span className="text-xl font-bold tracking-tight text-foreground">{"SmartLearn "}<span className="text-primary">{"LMS"}</span></span>
+        </Link>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-all"
@@ -150,12 +151,10 @@ export default function StudentDashboard() {
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="space-y-8">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="h-8 w-8 text-primary" />
-            <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-              {t('appName')}
-            </span>
-          </div>
+          <Link href="/" className="flex items-center gap-2">
+            <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
+            <span className="text-xl font-bold tracking-tight text-foreground">{"SmartLearn "}<span className="text-primary">{"LMS"}</span></span>
+          </Link>
 
           <div className="space-y-1.5">
             <div className="px-3 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">

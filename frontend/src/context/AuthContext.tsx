@@ -7,9 +7,24 @@ import api from '@/lib/api';
 interface User {
   id: number;
   email: string;
-  full_name: string;
+  full_name?: string;
   role: 'student' | 'teacher' | 'admin';
   is_active: boolean;
+  profile?: {
+    full_name: string;
+    phone_number?: string;
+    date_of_birth?: string;
+  };
+  teacher_profile?: {
+    faculty: string;
+    department: string;
+    specialization: string;
+    academic_title?: string;
+    teacher_code?: string;
+    bio?: string;
+    approval_status: 'pending' | 'approved' | 'rejected';
+    rejection_reason?: string;
+  };
 }
 
 interface AuthContextType {
@@ -78,7 +93,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userProfile);
 
       // Redirect to correct dashboard
-      if (userProfile.role === 'teacher') {
+      if (userProfile.role === 'admin') {
+        router.push('/dashboard/admin');
+      } else if (userProfile.role === 'teacher') {
         router.push('/dashboard/teacher');
       } else {
         router.push('/dashboard/student');

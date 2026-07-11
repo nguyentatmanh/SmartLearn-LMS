@@ -43,6 +43,8 @@ interface CourseDetail {
   chapters: Chapter[];
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function CourseDetailPage() {
   const { id } = useParams();
   const { user, isLoading: authLoading } = useAuth();

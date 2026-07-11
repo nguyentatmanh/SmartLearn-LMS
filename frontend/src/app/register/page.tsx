@@ -14,61 +14,23 @@ import {
   Phone, Calendar, Briefcase, Bookmark, FileText 
 } from 'lucide-react';
 
-const registerSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters').transform(val => val.trim()),
-  email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  phoneNumber: z.string().min(9, 'Phone number is too short').max(15, 'Phone number is too long').regex(/^\+?[\d\s\-()]+$/, 'Invalid phone number format'),
-  dateOfBirth: z.string().min(1, 'Date of birth is required').refine((val) => {
-    const d = new Date(val);
-    return !isNaN(d.getTime()) && d < new Date();
-  }, 'Date of birth must be in the past'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters long')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number')
-    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character'),
-  confirmPassword: z.string().min(1, 'Please confirm your password'),
-  role: z.enum(['student', 'teacher'], {
-    required_error: 'Role selection is required',
-  }),
-  // Teacher-specific fields
+const staticRegisterSchema = z.object({
+  fullName: z.string(),
+  email: z.string(),
+  phoneNumber: z.string(),
+  dateOfBirth: z.string(),
+  password: z.string(),
+  confirmPassword: z.string(),
+  role: z.enum(['student', 'teacher']),
   faculty: z.string().optional(),
   department: z.string().optional(),
   specialization: z.string().optional(),
   academicTitle: z.string().optional(),
   teacherCode: z.string().optional(),
   bio: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-}).refine((data) => {
-  if (data.role === 'teacher') {
-    return !!data.faculty && data.faculty.trim().length > 0;
-  }
-  return true;
-}, {
-  message: "Faculty is required for teachers",
-  path: ["faculty"],
-}).refine((data) => {
-  if (data.role === 'teacher') {
-    return !!data.department && data.department.trim().length > 0;
-  }
-  return true;
-}, {
-  message: "Department is required for teachers",
-  path: ["department"],
-}).refine((data) => {
-  if (data.role === 'teacher') {
-    return !!data.specialization && data.specialization.trim().length > 0;
-  }
-  return true;
-}, {
-  message: "Specialization is required for teachers",
-  path: ["specialization"],
 });
 
-type RegisterSchemaType = z.infer<typeof registerSchema>;
+type RegisterSchemaType = z.infer<typeof staticRegisterSchema>;
 
 export default function RegisterPage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -121,6 +83,62 @@ function RegisterFormContent() {
   const router = useRouter();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const registerSchema = React.useMemo(() => {
+    return z.object({
+      fullName: z.string().min(2, t('valNameMin')).transform(val => val.trim()),
+      email: z.string().min(1, t('valEmailReq')).email(t('valEmailInvalid')),
+      phoneNumber: z.string().min(9, t('valPhoneShort')).max(15, t('valPhoneLong')).regex(/^\+?[\d\s\-()]+$/, t('valPhoneFormat')),
+      dateOfBirth: z.string().min(1, t('valDobReq')).refine((val) => {
+        const d = new Date(val);
+        return !isNaN(d.getTime()) && d < new Date();
+      }, t('valDobPast')),
+      password: z.string()
+        .min(8, t('valPassMin'))
+        .regex(/[A-Z]/, t('valPassUpper'))
+        .regex(/[a-z]/, t('valPassLower'))
+        .regex(/\d/, t('valPassDigit'))
+        .regex(/[!@#$%^&*(),.?":{}|<>_+\-=\[\]{};':"\\|,.<>\/?~`]/, t('valPassSpecial')),
+      confirmPassword: z.string().min(1, t('valConfirmReq')),
+      role: z.enum(['student', 'teacher'], {
+        required_error: t('valRoleReq'),
+      }),
+      // Teacher-specific fields
+      faculty: z.string().optional(),
+      department: z.string().optional(),
+      specialization: z.string().optional(),
+      academicTitle: z.string().optional(),
+      teacherCode: z.string().optional(),
+      bio: z.string().optional(),
+    }).refine((data) => data.password === data.confirmPassword, {
+      message: t('valPassMatch'),
+      path: ["confirmPassword"],
+    }).refine((data) => {
+      if (data.role === 'teacher') {
+        return !!data.faculty && data.faculty.trim().length > 0;
+      }
+      return true;
+    }, {
+      message: t('valFacultyReq'),
+      path: ["faculty"],
+    }).refine((data) => {
+      if (data.role === 'teacher') {
+        return !!data.department && data.department.trim().length > 0;
+      }
+      return true;
+    }, {
+      message: t('valDepartmentReq'),
+      path: ["department"],
+    }).refine((data) => {
+      if (data.role === 'teacher') {
+        return !!data.specialization && data.specialization.trim().length > 0;
+      }
+      return true;
+    }, {
+      message: t('valSpecializationReq'),
+      path: ["specialization"],
+    });
+  }, [language]);
 
   const {
     register,

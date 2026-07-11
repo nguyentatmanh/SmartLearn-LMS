@@ -12,6 +12,7 @@ export default function LandingPage() {
   const { t } = usePreference();
 
   const getDashboardUrl = () => {
+    if (user?.role === 'admin') return '/dashboard/admin';
     return user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
   };
 

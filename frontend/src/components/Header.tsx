@@ -16,6 +16,7 @@ export default function AppHeader() {
   };
 
   const getDashboardUrl = () => {
+    if (user?.role === 'admin') return '/dashboard/admin';
     return user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
   };
 
@@ -24,11 +25,9 @@ export default function AppHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-          <GraduationCap className="h-8 w-8 text-primary" />
-          <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-            SmartLearn <span className="text-primary">LMS</span>
-          </span>
+        <Link href="/" className="flex items-center gap-2">
+          <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
+          <span className="text-xl font-bold tracking-tight text-foreground">{"SmartLearn "}<span className="text-primary">{"LMS"}</span></span>
         </Link>
 
         {/* Desktop Navigation */}
