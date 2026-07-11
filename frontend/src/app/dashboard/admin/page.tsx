@@ -265,7 +265,7 @@ export default function AdminDashboard() {
 
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 bg-primary/20 text-primary font-bold rounded-full flex items-center justify-center uppercase shrink-0">
-              {user?.full_name.charAt(0)}
+              {user?.full_name?.charAt(0) || 'U'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold truncate">{user?.full_name}</p>
