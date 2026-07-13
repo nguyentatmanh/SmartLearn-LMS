@@ -20,6 +20,8 @@ def create_chapter(db: Session, obj_in: ChapterCreate, course_id: int) -> Chapte
     """Create a new chapter for a course."""
     db_obj = Chapter(
         title=obj_in.title,
+        description=obj_in.description,
+        is_visible=obj_in.is_visible,
         order_index=obj_in.order_index,
         course_id=course_id
     )
@@ -67,7 +69,13 @@ def create_lesson(db: Session, obj_in: LessonCreate, course_id: int) -> Lesson:
         course_id=course_id,
         chapter_id=obj_in.chapter_id,
         title=obj_in.title,
+        description=obj_in.description,
         content=obj_in.content,
+        lesson_type=obj_in.lesson_type,
+        estimated_duration_minutes=obj_in.estimated_duration_minutes,
+        is_required=obj_in.is_required,
+        is_visible=obj_in.is_visible,
+        status=obj_in.status,
         order_index=obj_in.order_index,
         video_url=obj_in.video_url,
         document_url=obj_in.document_url

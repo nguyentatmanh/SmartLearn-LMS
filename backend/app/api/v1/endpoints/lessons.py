@@ -75,6 +75,7 @@ def delete_chapter(
 ) -> Any:
     """
     Delete a chapter. Only the course Teacher can do this.
+    Only allows deleting empty chapters.
     """
     chapter = crud_lesson.get_chapter(db, chapter_id=chapter_id)
     if not chapter:
@@ -85,6 +86,13 @@ def delete_chapter(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. You do not own the parent course."
+        )
+        
+    # Check dependencies: no lessons inside
+    if len(chapter.lessons) > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete chapter containing lessons. Please delete or move lessons first."
         )
         
     crud_lesson.delete_chapter(db, chapter_id=chapter_id)
@@ -202,6 +210,7 @@ def delete_lesson(
 ) -> Any:
     """
     Delete a lesson. Only the course Teacher can do this.
+    Only allows deleting lessons without materials or student progress.
     """
     lesson = crud_lesson.get_lesson(db, lesson_id=lesson_id)
     if not lesson:
@@ -212,6 +221,20 @@ def delete_lesson(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. You do not own this course."
+        )
+        
+    # Check dependencies: no materials attached
+    if len(lesson.materials) > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete lesson with attached learning materials. Archive or delete materials first."
+        )
+        
+    # Check progress dependency: no student progress
+    if len(lesson.progresses) > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete lesson because students have learning progress associated with it."
         )
         
     crud_lesson.delete_lesson(db, lesson_id=lesson_id)

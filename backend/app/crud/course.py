@@ -29,8 +29,15 @@ def create_course(db: Session, obj_in: CourseCreate, teacher_id: int) -> Course:
     """Create a new course assigned to a specific teacher."""
     db_obj = Course(
         title=obj_in.title,
+        short_description=obj_in.short_description,
         description=obj_in.description,
         thumbnail_url=obj_in.thumbnail_url,
+        category=obj_in.category,
+        level=obj_in.level,
+        specialization=obj_in.specialization,
+        estimated_duration=obj_in.estimated_duration,
+        prerequisites=obj_in.prerequisites,
+        learning_outcomes=obj_in.learning_outcomes,
         status=obj_in.status,
         teacher_id=teacher_id
     )
