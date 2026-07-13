@@ -36,6 +36,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/workspace
+      - smartlearn_uploads:/workspace/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -58,3 +59,4 @@ services:
 
 volumes:
   pgdata:
+  smartlearn_uploads:

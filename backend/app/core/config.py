@@ -15,6 +15,19 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
 
+    STORAGE_BACKEND: str = "local"
+    UPLOAD_ROOT: str = "/workspace/uploads"
+    MAX_UPLOAD_SIZE_MB: int = 30
+    ENABLE_VIDEO_UPLOAD: bool = False
+    MAX_VIDEO_UPLOAD_SIZE_MB: int = 500
+
+    S3_ENDPOINT: Optional[str] = None
+    S3_BUCKET: Optional[str] = None
+    S3_ACCESS_KEY: Optional[str] = None
+    S3_SECRET_KEY: Optional[str] = None
+    S3_REGION: Optional[str] = None
+    S3_USE_SSL: bool = True
+
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: Optional[int] = None
     SMTP_USERNAME: Optional[str] = None

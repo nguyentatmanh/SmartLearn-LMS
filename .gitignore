@@ -35,3 +35,6 @@ logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local uploaded files
+backend/uploads/
