@@ -18,8 +18,15 @@ import {
 interface Course {
   id: number;
   title: string;
+  short_description?: string;
   description: string;
   thumbnail_url: string;
+  category?: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  specialization?: string;
+  estimated_duration?: string;
+  prerequisites?: string;
+  learning_outcomes?: string;
   status: 'draft' | 'published' | 'archived';
   teacher_id: number;
   created_at: string;
@@ -28,8 +35,15 @@ interface Course {
 
 const courseSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
+  short_description: z.string().optional(),
   description: z.string().optional(),
   thumbnail_url: z.string().url('Must be a valid URL').or(z.literal('')).optional(),
+  category: z.string().optional(),
+  level: z.enum(['beginner', 'intermediate', 'advanced']),
+  specialization: z.string().optional(),
+  estimated_duration: z.string().optional(),
+  prerequisites: z.string().optional(),
+  learning_outcomes: z.string().optional(),
   status: z.enum(['draft', 'published', 'archived']),
 });
 
@@ -55,8 +69,15 @@ export default function TeacherDashboard() {
     resolver: zodResolver(courseSchema),
     defaultValues: {
       status: 'draft',
+      level: 'beginner',
+      short_description: '',
       description: '',
       thumbnail_url: '',
+      category: '',
+      specialization: '',
+      estimated_duration: '',
+      prerequisites: '',
+      learning_outcomes: '',
     },
   });
 
@@ -97,8 +118,15 @@ export default function TeacherDashboard() {
     try {
       await api.post('/courses', {
         title: data.title,
+        short_description: data.short_description || null,
         description: data.description || null,
         thumbnail_url: data.thumbnail_url || null,
+        category: data.category || null,
+        level: data.level,
+        specialization: data.specialization || null,
+        estimated_duration: data.estimated_duration || null,
+        prerequisites: data.prerequisites || null,
+        learning_outcomes: data.learning_outcomes || null,
         status: data.status,
       });
       reset();
@@ -192,6 +220,13 @@ export default function TeacherDashboard() {
             <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold text-sm transition-all text-left">
               <BookOpen className="h-4 w-4" />
               {t('myCourses')}
+            </button>
+            <button
+              onClick={() => router.push('/dashboard/teacher/materials')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted text-muted-foreground font-semibold text-sm transition-all text-left mt-1"
+            >
+              <FileText className="h-4 w-4" />
+              {t('teacherMaterialsWorkspace')}
             </button>
           </div>
         </div>

@@ -8,7 +8,7 @@ import api from '@/lib/api';
 import AppHeader from '@/components/Header';
 import { 
   GraduationCap, BookOpen, Plus, Loader2, ArrowLeft, 
-  Trash2, Lock, FileText, Video, ChevronRight 
+  Trash2, Lock, FileText, Video, ChevronRight, Download, ExternalLink
 } from 'lucide-react';
 
 interface Lesson {
@@ -52,6 +52,7 @@ export default function CourseDetailPage() {
   const router = useRouter();
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
+  const [courseMaterials, setCourseMaterials] = useState<any[]>([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -63,9 +64,16 @@ export default function CourseDetailPage() {
   
   // Lesson form state
   const [lessonTitle, setLessonTitle] = useState('');
+  const [lessonDescription, setLessonDescription] = useState('');
   const [lessonContent, setLessonContent] = useState('');
   const [lessonVideo, setLessonVideo] = useState('');
   const [lessonDoc, setLessonDoc] = useState('');
+  const [lessonType, setLessonType] = useState('text');
+  const [lessonDuration, setLessonDuration] = useState('10');
+  const [lessonVisibility, setLessonVisibility] = useState('enrolled_students');
+  const [lessonStatus, setLessonStatus] = useState('published');
+  const [lessonIsRequired, setLessonIsRequired] = useState(true);
+  const [lessonIsVisible, setLessonIsVisible] = useState(true);
 
   const [submitting, setSubmitting] = useState(false);
   const [enrollLoading, setEnrollLoading] = useState(false);
@@ -75,6 +83,16 @@ export default function CourseDetailPage() {
       setLoading(true);
       const res = await api.get(`/courses/${id}`);
       setCourse(res.data);
+
+      // Fetch course-level materials
+      try {
+        const matRes = await api.get(`/courses/${id}/materials`);
+        // Filter out lesson-specific materials to show only course-level files
+        const courseLevelFiles = matRes.data.filter((m: any) => !m.lesson_id);
+        setCourseMaterials(courseLevelFiles);
+      } catch (err) {
+        console.error('Failed to load course materials:', err);
+      }
 
       if (user && user.role === 'student') {
         const enrollRes = await api.get('/courses/student/enrolled');
@@ -150,17 +168,31 @@ export default function CourseDetailPage() {
 
       await api.post(`/courses/${id}/lessons`, {
         title: lessonTitle,
+        description: lessonDescription || null,
         content: lessonContent || null,
         chapter_id: targetChapterId,
         order_index: maxIndex + 1,
         video_url: lessonVideo || null,
         document_url: lessonDoc || null,
+        lesson_type: lessonType,
+        estimated_duration: parseInt(lessonDuration) || 10,
+        visibility: lessonVisibility,
+        status: lessonStatus,
+        is_required: lessonIsRequired,
+        is_visible: lessonIsVisible,
       });
 
       setLessonTitle('');
+      setLessonDescription('');
       setLessonContent('');
       setLessonVideo('');
       setLessonDoc('');
+      setLessonType('text');
+      setLessonDuration('10');
+      setLessonVisibility('enrolled_students');
+      setLessonStatus('published');
+      setLessonIsRequired(true);
+      setLessonIsVisible(true);
       setShowLessonModal(false);
       await fetchCourseDetails();
     } catch (e) {
@@ -254,6 +286,61 @@ export default function CourseDetailPage() {
             {course.description || 'No course description provided.'}
           </p>
         </div>
+
+        {/* Course Level Materials */}
+        {courseMaterials.length > 0 && (
+          <div className="glass p-6 rounded-2xl border border-border space-y-4">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              {language === 'en' ? 'Course Resources' : 'Tài liệu khóa học'} ({courseMaterials.length})
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {courseMaterials.map((m) => {
+                const isLink = m.material_type === 'external_link';
+                const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}${m.download_url}`;
+                
+                return (
+                  <div key={m.id} className="p-3 bg-muted/40 rounded-xl border border-border flex items-center justify-between gap-3 hover:border-primary/45 transition-colors">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {isLink ? (
+                        <ExternalLink className="h-4 w-4 text-sky-400 shrink-0" />
+                      ) : (
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold truncate text-foreground" title={m.title}>{m.title}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{m.description || m.original_filename}</p>
+                      </div>
+                    </div>
+                    
+                    {isLink ? (
+                      <a
+                        href={m.external_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 bg-muted hover:bg-muted/80 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shrink-0 text-sky-400"
+                      >
+                        Visit <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : (
+                      m.is_downloadable ? (
+                        <a
+                          href={downloadUrl}
+                          download
+                          className="px-2.5 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shrink-0"
+                        >
+                          Download <Download className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/60 italic shrink-0 px-2.5 py-1.5">View Only</span>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Syllabus / Content Section */}
         <section className="space-y-6">
@@ -410,13 +497,13 @@ export default function CourseDetailPage() {
 
         {/* Modal: Add Lesson */}
         {showLessonModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm fade-in">
-            <div className="w-full max-w-md glass border border-border rounded-2xl p-6 shadow-2xl space-y-4 bg-card text-foreground">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto fade-in">
+            <div className="w-full max-w-lg glass border border-border rounded-2xl p-6 shadow-2xl space-y-4 bg-card text-foreground max-h-[90vh] overflow-y-auto">
               <h3 className="text-lg font-bold">{t('addLesson')}</h3>
               <form onSubmit={handleAddLesson} className="space-y-4">
                 
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground font-semibold">{t('lessonTitleLabel')}</label>
+                  <label className="text-xs text-muted-foreground font-semibold">{t('lessonTitleLabel')} *</label>
                   <input
                     type="text"
                     placeholder={t('lessonTitlePlaceholder')}
@@ -428,18 +515,111 @@ export default function CourseDetailPage() {
                 </div>
 
                 <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground font-semibold">{t('descLabel')}</label>
+                  <textarea
+                    placeholder={t('descPlaceholder')}
+                    rows={2}
+                    value={lessonDescription}
+                    onChange={(e) => setLessonDescription(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-1">
                   <label className="text-xs text-muted-foreground font-semibold">{t('lessonContentLabel')}</label>
                   <textarea
                     placeholder={t('lessonContentPlaceholder')}
-                    rows={4}
+                    rows={3}
                     value={lessonContent}
                     onChange={(e) => setLessonContent(e.target.value)}
                     className="w-full px-4 py-2.5 bg-muted/40 border border-border rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">{t('lessonTypeLabel')}</label>
+                    <select
+                      value={lessonType}
+                      onChange={(e) => setLessonType(e.target.value)}
+                      className="w-full px-4 py-2 bg-muted/60 border border-border rounded-xl text-xs focus:outline-none focus:border-primary transition-all text-foreground"
+                    >
+                      <option value="text">Text Lesson</option>
+                      <option value="youtube_url">YouTube Video</option>
+                      <option value="local_video">Local Upload Video</option>
+                      <option value="documents">Documents Only</option>
+                      <option value="mixed">Mixed Structure</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">{t('estimatedDurationMinLabel')}</label>
+                    <input
+                      type="number"
+                      value={lessonDuration}
+                      onChange={(e) => setLessonDuration(e.target.value)}
+                      className="w-full px-4 py-2 bg-muted/40 border border-border rounded-xl text-xs focus:outline-none focus:border-primary transition-all text-foreground"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">{t('materialVisibilityLabel')}</label>
+                    <select
+                      value={lessonVisibility}
+                      onChange={(e) => setLessonVisibility(e.target.value)}
+                      className="w-full px-4 py-2 bg-muted/60 border border-border rounded-xl text-xs focus:outline-none focus:border-primary transition-all text-foreground"
+                    >
+                      <option value="enrolled_students">{t('visibilityEnrolled')}</option>
+                      <option value="teacher_only">{t('visibilityTeacherOnly')}</option>
+                      <option value="public">{t('visibilityPublic')}</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground font-semibold">{t('statusLabel')}</label>
+                    <select
+                      value={lessonStatus}
+                      onChange={(e) => setLessonStatus(e.target.value)}
+                      className="w-full px-4 py-2 bg-muted/60 border border-border rounded-xl text-xs focus:outline-none focus:border-primary transition-all text-foreground"
+                    >
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 py-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="lessonIsRequired"
+                      checked={lessonIsRequired}
+                      onChange={(e) => setLessonIsRequired(e.target.checked)}
+                      className="h-4 w-4 text-primary bg-muted/40 border-border rounded"
+                    />
+                    <label htmlFor="lessonIsRequired" className="text-xs font-semibold text-muted-foreground cursor-pointer">
+                      {t('isRequiredLabel')}
+                    </label>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="lessonIsVisible"
+                      checked={lessonIsVisible}
+                      onChange={(e) => setLessonIsVisible(e.target.checked)}
+                      className="h-4 w-4 text-primary bg-muted/40 border-border rounded"
+                    />
+                    <label htmlFor="lessonIsVisible" className="text-xs font-semibold text-muted-foreground cursor-pointer">
+                      {t('isVisibleLabel')}
+                    </label>
+                  </div>
+                </div>
+
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground font-semibold">{t('videoLinkLabel')}</label>
+                  <label className="text-xs text-muted-foreground font-semibold">{t('videoLinkLabel')} ({language === 'en' ? 'YouTube/External' : 'YouTube/Ngoài'})</label>
                   <input
                     type="text"
                     placeholder="e.g. https://youtube.com/watch?v=..."
@@ -450,7 +630,7 @@ export default function CourseDetailPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground font-semibold">{t('docLinkLabel')}</label>
+                  <label className="text-xs text-muted-foreground font-semibold">{t('docLinkLabel')} ({language === 'en' ? 'Drive/External' : 'Drive/Ngoài'})</label>
                   <input
                     type="text"
                     placeholder="e.g. https://drive.google.com/..."
@@ -464,14 +644,14 @@ export default function CourseDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowLessonModal(false)}
-                    className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors"
+                    className="flex-1 py-2.5 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors"
                   >
                     {t('cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="flex-1 py-2 bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl text-xs font-bold transition-colors"
+                    className="flex-1 py-2.5 bg-primary hover:bg-primary/95 text-primary-foreground rounded-xl text-xs font-bold transition-colors"
                   >
                     {submitting ? t('adding') : t('addLesson')}
                   </button>

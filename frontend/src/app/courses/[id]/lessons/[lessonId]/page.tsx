@@ -8,7 +8,7 @@ import api from '@/lib/api';
 import AppHeader from '@/components/Header';
 import { 
   ArrowLeft, Loader2, BookOpen, CheckCircle, Video, FileText, 
-  ExternalLink, ChevronRight, CheckCircle2 
+  ExternalLink, ChevronRight, CheckCircle2, Download 
 } from 'lucide-react';
 
 interface Lesson {
@@ -41,6 +41,7 @@ export default function LessonViewerPage() {
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [materials, setMaterials] = useState<any[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submittingProgress, setSubmittingProgress] = useState(false);
@@ -55,6 +56,14 @@ export default function LessonViewerPage() {
       // Fetch course structure for navigation sidebar
       const courseRes = await api.get(`/courses/${courseId}`);
       setCourse(courseRes.data);
+
+      // Fetch lesson materials
+      try {
+        const matRes = await api.get(`/lessons/${lessonId}/materials`);
+        setMaterials(matRes.data);
+      } catch (err) {
+        console.error('Failed to load lesson materials:', err);
+      }
 
       // Check if this lesson is completed
       if (user && user.role === 'student') {
@@ -213,6 +222,61 @@ export default function LessonViewerPage() {
             !ytVideoId && !lesson.document_url && (
               <p className="text-muted-foreground text-xs italic">{t('noTextContent')}</p>
             )
+          )}
+
+          {/* Lesson Materials (Phase A upload integration) */}
+          {materials.length > 0 && (
+            <div className="space-y-4 pt-4 border-t border-border">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                {t('materialsTitle')} ({materials.length})
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {materials.map((m) => {
+                  const isLink = m.material_type === 'external_link';
+                  const downloadUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}${m.download_url}`;
+                  
+                  return (
+                    <div key={m.id} className="glass p-3 rounded-xl border border-border flex items-center justify-between gap-3 hover:border-primary/45 transition-colors">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {isLink ? (
+                          <ExternalLink className="h-4 w-4 text-sky-400 shrink-0" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-primary shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold truncate text-foreground" title={m.title}>{m.title}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{m.description || m.original_filename}</p>
+                        </div>
+                      </div>
+                      
+                      {isLink ? (
+                        <a
+                          href={m.external_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 bg-muted hover:bg-muted/80 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shrink-0 text-sky-400"
+                        >
+                          Visit <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        m.is_downloadable ? (
+                          <a
+                            href={downloadUrl}
+                            download
+                            className="px-2.5 py-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-primary-foreground rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shrink-0"
+                          >
+                            Download <Download className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/60 italic shrink-0 px-2.5 py-1.5">View Only</span>
+                        )
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
 
         </main>
