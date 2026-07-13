@@ -1,14 +1,21 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
-from app.models.course import CourseStatus
+from app.models.course import CourseStatus, CourseLevel
 from app.schemas.lesson import ChapterWithLessonsResponse
 
 
 class CourseBase(BaseModel):
     title: str
+    short_description: Optional[str] = None
     description: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    category: Optional[str] = None
+    level: CourseLevel = CourseLevel.BEGINNER
+    specialization: Optional[str] = None
+    estimated_duration: Optional[str] = None
+    prerequisites: Optional[str] = None
+    learning_outcomes: Optional[str] = None
     status: CourseStatus = CourseStatus.DRAFT
 
 
@@ -18,8 +25,15 @@ class CourseCreate(CourseBase):
 
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
+    short_description: Optional[str] = None
     description: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    category: Optional[str] = None
+    level: Optional[CourseLevel] = None
+    specialization: Optional[str] = None
+    estimated_duration: Optional[str] = None
+    prerequisites: Optional[str] = None
+    learning_outcomes: Optional[str] = None
     status: Optional[CourseStatus] = None
 
 

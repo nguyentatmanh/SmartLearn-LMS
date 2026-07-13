@@ -31,3 +31,4 @@ class User(Base):
     courses = relationship("Course", back_populates="teacher", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="student", cascade="all, delete-orphan")
     lesson_progresses = relationship("LessonProgress", back_populates="student", cascade="all, delete-orphan")
+    materials = relationship("LearningMaterial", back_populates="uploader")

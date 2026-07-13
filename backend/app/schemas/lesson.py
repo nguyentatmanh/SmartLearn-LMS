@@ -3,11 +3,20 @@ from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
 
 
+from app.models.lesson import LessonType, LessonStatus
+
+
 # --- Lesson Schemas ---
 
 class LessonBase(BaseModel):
     title: str
+    description: Optional[str] = None
     content: Optional[str] = None
+    lesson_type: LessonType = LessonType.TEXT
+    estimated_duration_minutes: int = 15
+    is_required: bool = True
+    is_visible: bool = True
+    status: LessonStatus = LessonStatus.DRAFT
     order_index: int = 0
     video_url: Optional[str] = None
     document_url: Optional[str] = None
@@ -19,7 +28,13 @@ class LessonCreate(LessonBase):
 
 class LessonUpdate(BaseModel):
     title: Optional[str] = None
+    description: Optional[str] = None
     content: Optional[str] = None
+    lesson_type: Optional[LessonType] = None
+    estimated_duration_minutes: Optional[int] = None
+    is_required: Optional[bool] = None
+    is_visible: Optional[bool] = None
+    status: Optional[LessonStatus] = None
     order_index: Optional[int] = None
     video_url: Optional[str] = None
     document_url: Optional[str] = None
@@ -40,6 +55,8 @@ class LessonResponse(LessonBase):
 
 class ChapterBase(BaseModel):
     title: str
+    description: Optional[str] = None
+    is_visible: bool = True
     order_index: int = 0
 
 
@@ -49,6 +66,8 @@ class ChapterCreate(ChapterBase):
 
 class ChapterUpdate(BaseModel):
     title: Optional[str] = None
+    description: Optional[str] = None
+    is_visible: Optional[bool] = None
     order_index: Optional[int] = None
 
 
