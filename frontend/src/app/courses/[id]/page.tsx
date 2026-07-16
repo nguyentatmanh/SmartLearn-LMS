@@ -48,7 +48,7 @@ export const dynamic = 'force-dynamic';
 export default function CourseDetailPage() {
   const { id } = useParams();
   const { user, isLoading: authLoading } = useAuth();
-  const { t } = usePreference();
+  const { t, language } = usePreference();
   const router = useRouter();
 
   const [course, setCourse] = useState<CourseDetail | null>(null);

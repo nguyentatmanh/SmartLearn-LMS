@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from fastapi.responses import StreamingResponse
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.config import settings
@@ -549,7 +550,7 @@ async def upload_lesson_material(
 
 # --- Create external link endpoints ---
 
-class LinkCreateSchema(deps.BaseModel):
+class LinkCreateSchema(BaseModel):
     title: str
     description: Optional[str] = None
     external_url: str
