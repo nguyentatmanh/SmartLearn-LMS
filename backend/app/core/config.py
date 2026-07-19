@@ -59,12 +59,17 @@ class Settings(BaseSettings):
         postgres_port = os.getenv("POSTGRES_PORT", "5432")
         postgres_db = os.getenv("POSTGRES_DB", "smartlearn_db")
         
+        # If running outside Docker container and server is 'db', fallback to 'localhost'
+        if postgres_server == "db" and not os.path.exists("/.dockerenv"):
+            postgres_server = "localhost"
+
         return f"postgresql://{postgres_user}:{postgres_password}@{postgres_server}:{postgres_port}/{postgres_db}"
 
     model_config = SettingsConfigDict(
         case_sensitive=True,
-        env_file=".env",
-        env_file_encoding="utf-8"
+        env_file=(".env", "../.env"),
+        env_file_encoding="utf-8",
+        extra="ignore"
     )
 
 

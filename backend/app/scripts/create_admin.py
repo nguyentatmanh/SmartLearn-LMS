@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 # Add the parent directory of backend/app to PYTHONPATH so we can import app modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+from sqlalchemy import func
 from app.core.database import SessionLocal
 from app.models.user import User, UserRole
 from app.models.profile import UserProfile
@@ -20,7 +21,7 @@ def seed_admin():
         full_name = os.getenv("ADMIN_FULL_NAME", "System Admin").strip()
         
         # Check if user already exists
-        user = db.query(User).filter(User.email == email).first()
+        user = db.query(User).filter(func.lower(User.email) == email).first()
         if user:
             print(f"User with email {email} already exists. Upgrading to admin...")
             user.role = UserRole.ADMIN

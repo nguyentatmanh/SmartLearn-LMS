@@ -6,8 +6,12 @@ from app.core.database import engine
 from app.models import Base
 
 # Create database tables on startup (as a local development fallback) if enabled
-if settings.AUTO_CREATE_TABLES:
-    Base.metadata.create_all(bind=engine)
+try:
+    if settings.AUTO_CREATE_TABLES or str(engine.url).startswith("sqlite"):
+        Base.metadata.create_all(bind=engine)
+except Exception as e:
+    import logging
+    logging.getLogger(__name__).warning(f"Could not auto-create database tables on startup: {e}")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -16,15 +20,17 @@ app = FastAPI(
 )
 
 # CORS Configuration
-# Adjust origins in production. Standard development origin is localhost:3000.
+# Allow local dev origins
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"] if settings.DEBUG else origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

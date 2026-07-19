@@ -23,15 +23,26 @@ services:
       dockerfile: Dockerfile
     container_name: smartlearn_backend
     restart: always
+    env_file:
+      - .env
     environment:
       POSTGRES_SERVER: db
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-smartlearn_db}
       POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-      SECRET_KEY: ${SECRET_KEY:-smartlearn-local-dev-change-this-secret-key}
+      SECRET_KEY: ${SECRET_KEY:-super-secret-key-for-smartlearn-lms-development-only}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       AUTO_CREATE_TABLES: ${AUTO_CREATE_TABLES:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-SmartLearn-LMS}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      DEBUG: ${DEBUG:-true}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
     ports:
       - "8000:8000"
     volumes:
