@@ -98,30 +98,51 @@ def login_access_token(
 def verify_email_otp(
     *,
     db: Session = Depends(get_db),
-    payload: EmailOtpVerifyRequest
+    payload: EmailOtpVerifyRequest,
+    current_user: Optional[User] = Depends(deps.get_current_user_optional)
 ) -> Any:
     """
     Verifies the email verification OTP code. Marks the user as verified on success.
+    Supports authenticated user tokens or explicit payload email.
+    Always resolves target account from JWT for authenticated requests and rejects mismatching body emails.
     """
-    user = get_user_by_email(db, email=payload.email)
+    if current_user:
+        if payload.email and payload.email.strip().lower() != current_user.email.strip().lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email mismatch. Authenticated requests can only verify the logged-in user's email."
+            )
+        user = current_user
+    else:
+        if not payload.email or not payload.email.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email address is required for unauthenticated verification requests."
+            )
+        user = get_user_by_email(db, email=payload.email.strip())
+
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification code."
         )
     
     if user.email_verified:
-        return {"message": "Email is already verified."}
+        return {"message": "Email is already verified.", "email_verified": True}
 
     # Verify matching credentials
-    verify_otp_for_user(db, email=payload.email, otp=payload.otp)
+    verify_otp_for_user(db, email=user.email, otp=payload.otp)
 
     # Success: update database status
     user.email_verified = True
     db.add(user)
     db.commit()
 
-    return {"message": "Email verified successfully."}
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Email verified successfully for user_id={user.id}, email={user.email}")
+
+    return {"message": "Email verified successfully.", "email_verified": True}
 
 
 @router.post("/resend-email-otp")
@@ -129,20 +150,36 @@ def resend_email_otp(
     *,
     db: Session = Depends(get_db),
     payload: EmailOtpResendRequest,
-    accept_language: Optional[str] = Header(None)
+    accept_language: Optional[str] = Header(None),
+    current_user: Optional[User] = Depends(deps.get_current_user_optional)
 ) -> Any:
     """
     Resends a new verification OTP code. Enforces resend cooldowns.
-    Returns a generic message to prevent account existence disclosures.
+    Always resolves target account from JWT for authenticated requests and rejects mismatching body emails.
+    Returns a generic message to prevent account existence disclosures for unauthenticated requests.
     """
-    user = get_user_by_email(db, email=payload.email)
     generic_msg = "If the email is registered and unverified, a new verification code has been sent."
+
+    if current_user:
+        if payload.email and payload.email.strip().lower() != current_user.email.strip().lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email mismatch. Authenticated requests can only resend to the logged-in user's email."
+            )
+        user = current_user
+    else:
+        if not payload.email or not payload.email.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email address is required for unauthenticated resend requests."
+            )
+        user = get_user_by_email(db, email=payload.email.strip())
 
     if not user:
         return {"message": generic_msg}
 
     if user.email_verified:
-        return {"message": "Email is already verified."}
+        return {"message": "Email is already verified.", "email_verified": True}
 
     lang = "vi" if accept_language and "vi" in accept_language.lower() else "en"
     
@@ -154,7 +191,7 @@ def resend_email_otp(
 
 @router.get("/me", response_model=UserResponse)
 def read_user_me(
-    current_user: User = Depends(deps.get_current_user)
+    current_user: User = Depends(deps.get_current_user_allow_unverified)
 ) -> Any:
     """
     Get current logged-in user profile.

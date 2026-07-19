@@ -40,7 +40,16 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error(err);
       if (err.response && err.response.data && err.response.data.detail) {
-        setErrorMsg(err.response.data.detail);
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') {
+          setErrorMsg(detail);
+        } else if (Array.isArray(detail)) {
+          setErrorMsg(detail.map((d: any) => d.msg || JSON.stringify(d)).join(', '));
+        } else {
+          setErrorMsg(JSON.stringify(detail));
+        }
+      } else if (err.message && err.message.includes('Network Error')) {
+        setErrorMsg('Cannot connect to backend server. Please make sure backend is running on http://localhost:8000.');
       } else {
         setErrorMsg('Invalid email or password. Please try again.');
       }

@@ -1,4 +1,5 @@
 from typing import Optional
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
@@ -15,13 +16,15 @@ def get_user(db: Session, user_id: int) -> Optional[User]:
 
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """Retrieve a user by their email address."""
-    return db.query(User).filter(User.email == email).first()
+    clean_email = email.strip().lower() if email else ""
+    return db.query(User).filter(func.lower(User.email) == clean_email).first()
 
 
 def create_user(db: Session, obj_in: UserCreate) -> User:
     """Create a new user, hashing the password before database storage, and generate profiles."""
+    clean_email = str(obj_in.email).strip().lower()
     db_obj = User(
-        email=obj_in.email,
+        email=clean_email,
         hashed_password=get_password_hash(obj_in.password),
         full_name=obj_in.full_name,
         role=obj_in.role,

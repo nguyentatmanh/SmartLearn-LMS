@@ -47,32 +47,32 @@ Best regards,
 SmartLearn LMS Team
 """
 
-    is_dev = settings.DEBUG or settings.ENVIRONMENT == "development"
-    if is_dev:
-        print(f"\n[DEVELOPMENT OTP LOG]")
-        print("=============================================================")
-        print(f"TO: {to_email}")
-        print(f"SUBJECT: {subject}")
-        print(f"BODY:\n{text_content}")
-        print("=============================================================\n")
-
-    # Check if SMTP configuration exists
-    has_smtp = all([
+    # Plaintext OTP logging allowed ONLY when ENVIRONMENT == "development" AND DEBUG == True
+    is_dev = (settings.ENVIRONMENT == "development" and settings.DEBUG is True)
+    
+    # Check if complete SMTP configuration exists
+    has_smtp = bool(all([
         settings.SMTP_HOST,
         settings.SMTP_PORT,
         settings.SMTP_USERNAME,
         settings.SMTP_PASSWORD,
         settings.SMTP_FROM_EMAIL
-    ])
+    ]))
+
+    # Emit plaintext OTP only in explicit development mode using a single logger mechanism
+    if is_dev:
+        logger.info(f"[DEV EMAIL] OTP for {to_email}: {otp} (Expires in {expires_minutes}m)")
 
     if not has_smtp:
         if is_dev:
+            logger.info("SMTP not configured. Development mode active; OTP logged to console.")
             return True
         else:
-            logger.error("SMTP configuration missing in non-development mode. Cannot send OTP email.")
+            logger.error("SMTP configuration missing in production mode. Cannot send OTP email.")
             return False
 
     try:
+        logger.info(f"Attempting SMTP email delivery to {to_email} via {settings.SMTP_HOST}:{settings.SMTP_PORT}")
         # Construct email message
         message = MIMEMultipart()
         message["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
@@ -84,7 +84,7 @@ SmartLearn LMS Team
         host = settings.SMTP_HOST
         port = settings.SMTP_PORT or 587
         
-        server = smtplib.SMTP(host, port)
+        server = smtplib.SMTP(host, int(port), timeout=10)
         server.ehlo()
         
         if settings.SMTP_USE_TLS:
@@ -94,7 +94,11 @@ SmartLearn LMS Team
         server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
         server.sendmail(settings.SMTP_FROM_EMAIL, to_email, message.as_string())
         server.quit()
+        logger.info(f"Successfully sent OTP email to {to_email}")
         return True
     except Exception as e:
         logger.error(f"Failed to send SMTP email to {to_email}: {str(e)}")
+        if is_dev:
+            logger.warning(f"SMTP delivery error in dev mode. OTP is available via [DEV EMAIL] console log.")
+            return True
         return False

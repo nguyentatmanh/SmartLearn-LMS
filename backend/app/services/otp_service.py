@@ -82,12 +82,20 @@ def create_otp_for_user(
     db.refresh(db_obj)
 
     # 6. Send code via Email Service
-    send_otp_email(
+    sent = send_otp_email(
         to_email=email,
         otp=otp,
         expires_minutes=10,
         language=language
     )
+
+    if not sent:
+        db.delete(db_obj)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification code. Please check SMTP settings or try again later."
+        )
 
     return db_obj
 

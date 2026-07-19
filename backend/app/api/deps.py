@@ -17,11 +17,11 @@ oauth2_scheme = OAuth2PasswordBearer(
 )
 
 
-def get_current_user(
+def get_current_user_allow_unverified(
     db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
 ) -> User:
     """
-    Validate the JWT token and retrieve the corresponding active user.
+    Validate JWT token and return active user regardless of email_verified state.
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -55,12 +55,48 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Inactive user"
         )
-    if not user.email_verified:
+    return user
+
+
+def get_current_user(
+    current_user: User = Depends(get_current_user_allow_unverified),
+) -> User:
+    """
+    Validates token and enforces that the user's email is verified.
+    """
+    if not current_user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email address not verified."
         )
-    return user
+    return current_user
+
+
+from typing import Optional
+from fastapi import Header
+
+def get_current_user_optional(
+    db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(None)
+) -> Optional[User]:
+    """
+    Optionally retrieves the current active user if a valid Authorization Bearer header is present.
+    Returns None if missing or invalid.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    token = authorization.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        user_id_str = payload.get("sub")
+        if not user_id_str:
+            return None
+        user = get_user(db, user_id=int(user_id_str))
+        if user and user.is_active:
+            return user
+    except Exception:
+        pass
+    return None
 
 
 from app.models.profile import TeacherApprovalStatus

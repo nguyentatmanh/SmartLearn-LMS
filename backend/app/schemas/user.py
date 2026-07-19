@@ -138,12 +138,12 @@ class RegisterResponse(BaseModel):
 
 
 class EmailOtpVerifyRequest(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
     otp: str
 
 
 class EmailOtpResendRequest(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
 
 
 class TeacherRejectRequest(BaseModel):
