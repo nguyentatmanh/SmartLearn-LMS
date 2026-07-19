@@ -32,6 +32,13 @@ class Course(Base):
     learning_outcomes = Column(Text, nullable=True)
     status = Column(Enum(CourseStatus, native_enum=False, values_callable=lambda x: [e.value for e in x]), default=CourseStatus.DRAFT, nullable=False)
     
+    # Cover image fields
+    cover_image_source = Column(String, nullable=True)  # "upload" | "external"
+    cover_storage_key = Column(String, nullable=True, unique=True, index=True)
+    cover_external_url = Column(String, nullable=True)
+    cover_mime_type = Column(String, nullable=True)
+    cover_updated_at = Column(DateTime, nullable=True)
+
     teacher_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
