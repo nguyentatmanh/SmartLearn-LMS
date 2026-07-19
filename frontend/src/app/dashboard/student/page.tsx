@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { usePreference } from '@/context/PreferenceContext';
 import api from '@/lib/api';
+import CourseCover from '@/components/course/CourseCover';
 import { 
   GraduationCap, BookOpen, Search, LogOut, Loader2, Sparkles, 
   BookCheck, Sun, Moon, Globe, Menu, X, BookOpenCheck, 
@@ -17,6 +18,7 @@ interface Course {
   title: string;
   description: string;
   thumbnail_url: string;
+  cover_display_url?: string | null;
   status: string;
   teacher_name: string;
   is_enrolled: boolean;
@@ -27,6 +29,11 @@ export default function StudentDashboard() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { theme, toggleTheme, language, setLanguage, t, isMounted } = usePreference();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,8 +89,13 @@ export default function StudentDashboard() {
     }
   };
 
-  // Hydration and loading guard
-  if (!isMounted || authLoading || (!user && !authLoading) || loading) {
+  // Hydration guard
+  if (!mounted) {
+    return null;
+  }
+
+  // Loading guard
+  if (authLoading || (!user && !authLoading) || loading) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
@@ -355,16 +367,10 @@ export default function StudentDashboard() {
               {enrolledCourses.map((c) => (
                 <div key={c.id} className="glass rounded-2xl p-5 border border-border flex flex-col justify-between glass-hover">
                   <div className="space-y-3">
-                    <div className="aspect-[16/9] w-full bg-muted rounded-xl flex items-center justify-center overflow-hidden relative">
-                      {c.thumbnail_url ? (
-                        <img src={c.thumbnail_url} alt={c.title} className="object-cover w-full h-full" />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground/30 space-y-1">
-                          <BookOpen className="h-10 w-10" />
-                          <span className="text-[10px]">SmartLearn</span>
-                        </div>
-                      )}
-                    </div>
+                    <CourseCover
+                      coverDisplayUrl={c.cover_display_url}
+                      title={c.title}
+                    />
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-bold text-primary tracking-wider uppercase bg-primary/10 px-2 py-0.5 rounded">
                         Instructor: {c.teacher_name}
@@ -440,16 +446,10 @@ export default function StudentDashboard() {
               {filteredCatalog.map((c) => (
                 <div key={c.id} className="glass rounded-2xl p-5 border border-border flex flex-col justify-between glass-hover">
                   <div className="space-y-3">
-                    <div className="aspect-[16/9] w-full bg-muted rounded-xl flex items-center justify-center overflow-hidden relative">
-                      {c.thumbnail_url ? (
-                        <img src={c.thumbnail_url} alt={c.title} className="object-cover w-full h-full" />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground/30 space-y-1">
-                          <BookOpen className="h-10 w-10" />
-                          <span className="text-[10px]">SmartLearn</span>
-                        </div>
-                      )}
-                    </div>
+                    <CourseCover
+                      coverDisplayUrl={c.cover_display_url}
+                      title={c.title}
+                    />
                     <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase block">
                       Instructor: {c.teacher_name}
                     </span>

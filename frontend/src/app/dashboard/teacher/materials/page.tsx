@@ -10,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import api from '@/lib/api';
 import axios from 'axios';
+import TeacherSidebar from '@/components/teacher/TeacherSidebar';
 import { 
   GraduationCap, BookOpen, Plus, Loader2, LogOut, Sparkles, 
   FolderClosed, Settings, Sun, Moon, Globe, Menu, X, 
@@ -61,6 +62,11 @@ export default function TeacherMaterials() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { theme, toggleTheme, language, setLanguage, t, isMounted } = usePreference();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Data lists
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -323,7 +329,12 @@ export default function TeacherMaterials() {
   const filteredLessonsForUpload = lessons.filter(l => l.course_id === uploadCourseId);
   const filteredLessonsForLink = lessons.filter(l => l.course_id === linkCourseId);
 
-  if (!isMounted || authLoading || (!user && !authLoading)) {
+  // Hydration guard
+  if (!mounted) {
+    return null;
+  }
+
+  if (authLoading || (!user && !authLoading)) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
@@ -335,90 +346,8 @@ export default function TeacherMaterials() {
   }
 
   return (
-    <div className="min-h-dvh flex flex-col lg:flex-row bg-background text-foreground transition-colors duration-300">
-      
-      {/* Mobile Header */}
-      <header className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-card/85 backdrop-blur-md sticky top-0 z-30">
-        <Link href="/" className="flex items-center gap-2">
-          <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
-          <span className="text-xl font-bold tracking-tight text-foreground">{"SmartLearn "}<span className="text-primary">{"LMS"}</span></span>
-        </Link>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 rounded-xl hover:bg-muted text-muted-foreground transition-all"
-        >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
-      </header>
-
-      {/* Mobile Sidebar Overlay */}
-      {mobileMenuOpen && (
-        <div
-          onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
-        />
-      )}
-
-      {/* Sidebar Navigation */}
-      <aside className={`fixed inset-y-0 left-0 w-64 glass p-6 flex flex-col justify-between z-40 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:h-auto lg:min-h-dvh ${
-        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <div className="space-y-8">
-          <Link href="/" className="flex items-center gap-2">
-            <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
-            <span className="text-xl font-bold tracking-tight text-foreground">{"SmartLearn "}<span className="text-primary">{"LMS"}</span></span>
-          </Link>
-
-          <div className="space-y-1.5">
-            <div className="px-3 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              {t('teacherPanel')}
-            </div>
-            <button 
-              onClick={() => router.push('/dashboard/teacher')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-muted font-semibold text-sm transition-all text-left"
-            >
-              <BookOpen className="h-4 w-4" />
-              {t('myCourses')}
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary font-semibold text-sm transition-all text-left mt-1">
-              <FileText className="h-4 w-4" />
-              {t('teacherMaterialsWorkspace')}
-            </button>
-          </div>
-        </div>
-
-        {/* User Card */}
-        <div className="mt-8 pt-6 border-t border-border space-y-4">
-          <div className="flex items-center justify-between gap-2 p-1 bg-muted/40 rounded-xl border border-border">
-            <button onClick={toggleTheme} className="flex-1 p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex justify-center">
-              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-indigo-500" />}
-            </button>
-            <div className="h-4 w-[1px] bg-border shrink-0" />
-            <button onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')} className="flex-1 p-2 rounded-lg hover:bg-muted text-xs font-bold text-muted-foreground hover:text-foreground transition-all flex items-center justify-center gap-1">
-              <Globe className="h-3.5 w-3.5" />
-              <span>{language === 'en' ? 'EN' : 'VI'}</span>
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 p-1 rounded-xl">
-            <div className="h-10 w-10 bg-primary/20 text-primary font-bold rounded-full flex items-center justify-center uppercase shrink-0">
-              {user?.full_name?.charAt(0) || 'T'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold truncate">{user?.full_name}</p>
-              <p className="text-xs text-muted-foreground capitalize truncate">{user?.role}</p>
-            </div>
-          </div>
-          
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-border hover:bg-danger/10 hover:text-danger hover:border-danger/30 text-xs font-bold transition-all">
-            <LogOut className="h-4 w-4" />
-            {t('logout')}
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-grow p-4 sm:p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full fade-in overflow-x-hidden">
+    <TeacherSidebar>
+      <div className="p-4 sm:p-6 lg:p-10 space-y-8 max-w-7xl mx-auto w-full fade-in overflow-x-hidden">
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-border/60 pb-6">
@@ -969,7 +898,7 @@ export default function TeacherMaterials() {
           </div>
         )}
 
-      </main>
-    </div>
+      </div>
+    </TeacherSidebar>
   );
 }

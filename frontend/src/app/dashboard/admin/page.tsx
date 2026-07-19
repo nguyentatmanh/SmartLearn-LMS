@@ -65,6 +65,11 @@ export default function AdminDashboard() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { theme, toggleTheme, language, setLanguage, t, isMounted } = usePreference();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'requests' | 'courses'>('overview');
   const [users, setUsers] = useState<User[]>([]);
@@ -308,8 +313,13 @@ export default function AdminDashboard() {
     });
   };
 
-  // Hydration and loading guard
-  if (!isMounted || authLoading || (!user && !authLoading) || loading) {
+  // Hydration guard
+  if (!mounted) {
+    return null;
+  }
+
+  // Loading guard
+  if (authLoading || (!user && !authLoading) || loading) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-4">
