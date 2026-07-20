@@ -5,7 +5,7 @@ import logging
 import urllib.parse
 from datetime import datetime
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request
 from fastapi.responses import StreamingResponse
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session, selectinload
@@ -266,29 +266,26 @@ def read_course(
     return course
 
 
-@router.put("/{course_id}", response_model=CourseResponse)
-def update_course(
+    # Increment content_revision and reset stale review status if edited
+    from app.services.course_moderation import CourseModerationService
+    CourseModerationService.increment_content_revision(db, course)
+    return crud_course.update_course(db=db, db_obj=course, obj_in=course_in)
+
+
+@router.post("/{course_id}/submit-review", response_model=CourseResponse)
+def submit_course_review(
     *,
     db: Session = Depends(get_db),
     course_id: int,
-    course_in: CourseUpdate,
+    request: Request,
     current_user: User = Depends(deps.get_current_active_teacher)
 ) -> Any:
     """
-    Update a course.
-    - Enforces object-level verification: Teachers can only update their own courses.
+    Submit a course draft for administrator publication review.
     """
-    course = crud_course.get_course(db, course_id=course_id)
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-        
-    if course.teacher_id != current_user.id and current_user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. You do not own this course."
-        )
-        
-    return crud_course.update_course(db=db, db_obj=course, obj_in=course_in)
+    from app.services.course_moderation import CourseModerationService
+    ip = request.client.host if request.client else None
+    return CourseModerationService.submit_for_review(db, course_id, current_user.id, ip)
 
 
 @router.delete("/{course_id}", response_model=CourseResponse)

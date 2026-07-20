@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, computed_field
-from app.models.course import CourseStatus, CourseLevel
+from app.models.course import CourseStatus, CourseLevel, CourseReviewStatus
 from app.schemas.lesson import ChapterWithLessonsResponse
 
 
@@ -44,6 +44,16 @@ class CourseInDBBase(CourseBase):
     cover_external_url: Optional[str] = None
     cover_mime_type: Optional[str] = None
     cover_updated_at: Optional[datetime] = None
+
+    review_status: CourseReviewStatus = CourseReviewStatus.NOT_SUBMITTED
+    content_revision: int = 1
+    submitted_revision: Optional[int] = None
+    approved_revision: Optional[int] = None
+    submitted_for_review_at: Optional[datetime] = None
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[int] = None
+    review_note: Optional[str] = None
+
     created_at: datetime
     updated_at: datetime
 
@@ -52,11 +62,6 @@ class CourseInDBBase(CourseBase):
     @computed_field
     @property
     def cover_display_url(self) -> Optional[str]:
-        """
-        Returns the best available cover image URL.
-        Fallback order: uploaded cover → external cover → legacy thumbnail_url → None.
-        Never exposes storage keys.
-        """
         if self.cover_image_source == "upload":
             return f"/api/v1/courses/{self.id}/cover"
         if self.cover_image_source == "external" and self.cover_external_url:
@@ -68,31 +73,29 @@ class CourseInDBBase(CourseBase):
     @computed_field
     @property
     def chapters_count(self) -> int:
-        return len(self.chapters) if hasattr(self, "chapters") else 0
+        return len(self.chapters) if hasattr(self, "chapters") and self.chapters is not None else 0
 
     @computed_field
     @property
     def lessons_count(self) -> int:
-        return len(self.lessons) if hasattr(self, "lessons") else 0
+        return len(self.lessons) if hasattr(self, "lessons") and self.lessons is not None else 0
 
     @computed_field
     @property
     def enrollments_count(self) -> int:
-        return len(self.enrollments) if hasattr(self, "enrollments") else 0
+        return len(self.enrollments) if hasattr(self, "enrollments") and self.enrollments is not None else 0
 
 
 class CourseResponse(CourseInDBBase):
     pass
 
 
-# Minimal Teacher Schema to embed in responses
 class CourseTeacherResponse(BaseModel):
     id: int
     full_name: str
     email: str
 
     model_config = ConfigDict(from_attributes=True)
-
 
 
 class CourseDetailResponse(CourseResponse):
@@ -108,13 +111,15 @@ class CourseStatusPatchRequest(BaseModel):
     status: CourseStatus
 
 
+class CourseReviewRequestNotes(BaseModel):
+    review_note: str
+
+
 class CourseCoverExternalRequest(BaseModel):
-    """Request body for setting an external cover URL."""
     cover_external_url: str
 
 
 class TeacherDashboardStats(BaseModel):
-    """Real statistics for the teacher dashboard."""
     total_courses: int = 0
     published_courses: int = 0
     draft_courses: int = 0
@@ -124,7 +129,6 @@ class TeacherDashboardStats(BaseModel):
 
 
 class CourseStudentProgress(BaseModel):
-    """Student progress summary for a course."""
     student_id: int
     full_name: str
     email: str
@@ -137,7 +141,6 @@ class CourseStudentProgress(BaseModel):
 
 
 class LessonProgressDetail(BaseModel):
-    """Detail of one lesson's progress for a student."""
     lesson_id: int
     lesson_title: str
     chapter_title: str
@@ -148,7 +151,6 @@ class LessonProgressDetail(BaseModel):
 
 
 class StudentCourseProgressDetail(BaseModel):
-    """Detailed per-lesson progress for one student in a course."""
     student_id: int
     full_name: str
     email: str

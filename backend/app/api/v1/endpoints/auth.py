@@ -13,6 +13,7 @@ from app.schemas.auth import Token
 from app.crud.user import get_user_by_email, create_user, authenticate
 from app.core.security import create_access_token
 from app.services.otp_service import create_otp_for_user, verify_otp_for_user
+from app.services.settings_service import SettingsService
 
 router = APIRouter()
 
@@ -82,7 +83,8 @@ def login_access_token(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user"
         )
-    elif not user.email_verified:
+    sys_settings = SettingsService.get_settings(db)
+    if sys_settings.require_email_verification and not user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Please verify your email before logging in."

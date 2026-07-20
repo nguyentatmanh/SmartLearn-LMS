@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, List, Any
 from pydantic import BaseModel, EmailStr, ConfigDict, field_validator, model_validator
 from app.models.user import UserRole
 from app.models.profile import TeacherApprovalStatus
@@ -120,6 +120,7 @@ class TeacherProfileResponse(BaseModel):
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
+    full_name: str
     role: UserRole
     is_active: bool
     email_verified: bool
@@ -127,6 +128,31 @@ class UserResponse(BaseModel):
     updated_at: datetime
     profile: Optional[UserProfileResponse] = None
     teacher_profile: Optional[TeacherProfileResponse] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def resolve_user_full_name(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            fn = data.get('full_name')
+            if not fn or not str(fn).strip():
+                prof = data.get('profile')
+                if isinstance(prof, dict) and prof.get('full_name'):
+                    data['full_name'] = prof['full_name']
+                elif data.get('email'):
+                    data['full_name'] = str(data['email']).split('@')[0]
+                else:
+                    data['full_name'] = 'Unnamed Account'
+        elif hasattr(data, 'email'):
+            fn = getattr(data, 'full_name', None)
+            if not fn or not str(fn).strip():
+                prof = getattr(data, 'profile', None)
+                if prof and getattr(prof, 'full_name', None):
+                    setattr(data, 'full_name', prof.full_name)
+                elif getattr(data, 'email', None):
+                    setattr(data, 'full_name', str(data.email).split('@')[0])
+                else:
+                    setattr(data, 'full_name', 'Unnamed Account')
+        return data
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -161,3 +187,77 @@ class UserRolePatchRequest(BaseModel):
 class AdminUserResponse(UserResponse):
     enrolled_courses_count: Optional[int] = None
     created_courses_count: Optional[int] = None
+
+
+class StudentProfileSummary(BaseModel):
+    enrolled_courses_count: int = 0
+    active_courses_count: int = 0
+    completed_courses_count: int = 0
+    completed_lessons_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TeacherProfileDetail(BaseModel):
+    faculty: str
+    department: str
+    specialization: str
+    academic_title: Optional[str] = None
+    teacher_code: Optional[str] = None
+    bio: Optional[str] = None
+    approval_status: TeacherApprovalStatus
+    rejection_reason: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[int] = None
+    reviewer_name: Optional[str] = None
+    total_courses: int = 0
+    published_courses: int = 0
+    total_students: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminProfileSummary(BaseModel):
+    admin_level: str = "System Administrator"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserActivityItem(BaseModel):
+    id: int
+    event_type: str
+    result: str
+    created_at: datetime
+    ip_address: Optional[str] = None
+    description: str
+    activity_category: str  # "target" | "actor"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DiscriminatedUserProfile(BaseModel):
+    type: str  # "student" | "teacher" | "admin"
+    student_details: Optional[StudentProfileSummary] = None
+    teacher_details: Optional[TeacherProfileDetail] = None
+    admin_details: Optional[AdminProfileSummary] = None
+
+
+class UserDetailResponse(BaseModel):
+    id: int
+    email: EmailStr
+    full_name: str
+    role: UserRole
+    is_active: bool
+    email_verified: bool
+    is_approved: bool
+    created_at: datetime
+    updated_at: datetime
+    last_login_at: Optional[datetime] = None
+    phone_number: Optional[str] = None
+    date_of_birth: Optional[date] = None
+
+    profile: Optional[DiscriminatedUserProfile] = None
+    recent_activities: List[UserActivityItem] = []
+
+    model_config = ConfigDict(from_attributes=True)
+

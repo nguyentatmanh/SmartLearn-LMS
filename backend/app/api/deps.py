@@ -1,5 +1,5 @@
-from typing import Generator
-from fastapi import Depends, HTTPException, status
+from typing import Generator, Optional
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
@@ -8,10 +8,10 @@ from app.core.database import get_db
 from app.core.security import ALGORITHM
 from app.schemas.auth import TokenPayload
 from app.models.user import User, UserRole
+from app.models.profile import TeacherApprovalStatus
 from app.crud.user import get_user
+from app.services.settings_service import SettingsService
 
-# OAuth2PasswordBearer extracts the Bearer token from the Authorization header.
-# We point tokenUrl to the login endpoint.
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/auth/login"
 )
@@ -59,12 +59,14 @@ def get_current_user_allow_unverified(
 
 
 def get_current_user(
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user_allow_unverified),
 ) -> User:
     """
-    Validates token and enforces that the user's email is verified.
+    Validates token and enforces email verification based on SystemSettings policy.
     """
-    if not current_user.email_verified:
+    sys_settings = SettingsService.get_settings(db)
+    if sys_settings.require_email_verification and not current_user.email_verified:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Email address not verified."
@@ -72,16 +74,12 @@ def get_current_user(
     return current_user
 
 
-from typing import Optional
-from fastapi import Header
-
 def get_current_user_optional(
     db: Session = Depends(get_db),
     authorization: Optional[str] = Header(None)
 ) -> Optional[User]:
     """
-    Optionally retrieves the current active user if a valid Authorization Bearer header is present.
-    Returns None if missing or invalid.
+    Optionally retrieves current active user if Bearer token present.
     """
     if not authorization or not authorization.startswith("Bearer "):
         return None
@@ -99,34 +97,48 @@ def get_current_user_optional(
     return None
 
 
-from app.models.profile import TeacherApprovalStatus
-
-
 def get_current_active_teacher(
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> User:
     """
-    Enforce that the current user has the Teacher role and is approved by administrators.
+    Enforce Teacher role and approval policy.
+    Rejected teachers are ALWAYS BLOCKED.
+    Pending teachers are blocked only when require_teacher_approval is True.
     """
     if current_user.role != UserRole.TEACHER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user does not have enough privileges (Teacher role required)",
         )
-    if not current_user.teacher_profile or current_user.teacher_profile.approval_status != TeacherApprovalStatus.APPROVED:
+
+    sys_settings = SettingsService.get_settings(db)
+    profile = current_user.teacher_profile
+
+    if not profile:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Teacher account is pending administrator approval.",
+            detail="Teacher profile does not exist. Manual profile repair required."
         )
+
+    if profile.approval_status == TeacherApprovalStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Teacher account application was rejected."
+        )
+
+    if profile.approval_status == TeacherApprovalStatus.PENDING and sys_settings.require_teacher_approval:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Teacher account is pending administrator approval."
+        )
+
     return current_user
 
 
 def get_current_active_student(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """
-    Enforce that the current user has the Student role.
-    """
     if current_user.role != UserRole.STUDENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -138,9 +150,6 @@ def get_current_active_student(
 def get_current_active_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """
-    Enforce that the current user has the Admin role.
-    """
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

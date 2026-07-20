@@ -28,7 +28,7 @@ class User(Base):
     # Relationships
     profile = relationship("UserProfile", uselist=False, back_populates="user", cascade="all, delete-orphan")
     teacher_profile = relationship("TeacherProfile", uselist=False, foreign_keys="[TeacherProfile.user_id]", back_populates="user", cascade="all, delete-orphan")
-    courses = relationship("Course", back_populates="teacher", cascade="all, delete-orphan")
+    courses = relationship("Course", foreign_keys="[Course.teacher_id]", back_populates="teacher", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="student", cascade="all, delete-orphan")
     lesson_progresses = relationship("LessonProgress", back_populates="student", cascade="all, delete-orphan")
     materials = relationship("LearningMaterial", back_populates="uploader")

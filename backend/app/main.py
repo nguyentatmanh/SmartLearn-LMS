@@ -1,3 +1,13 @@
+# Passlib compatibility patch for bcrypt >= 4.0.0
+try:
+    import bcrypt
+    if not hasattr(bcrypt, '__about__'):
+        class BcryptAbout:
+            __version__ = getattr(bcrypt, '__version__', '4.0.1')
+        bcrypt.__about__ = BcryptAbout()
+except Exception:
+    pass
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
