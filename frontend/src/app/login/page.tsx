@@ -17,6 +17,41 @@ const loginSchema = z.object({
 
 type LoginSchemaType = z.infer<typeof loginSchema>;
 
+const normalizeErrorMessage = (err: any): string => {
+  if (!err) return 'An unexpected error occurred. Please try again.';
+
+  if (err.response && err.response.data && err.response.data.detail !== undefined) {
+    const detail = err.response.data.detail;
+    if (typeof detail === 'string') {
+      return detail;
+    }
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item: any) => {
+          if (typeof item === 'string') return item;
+          if (typeof item === 'object' && item !== null) {
+            return item.msg || item.message || JSON.stringify(item);
+          }
+          return String(item);
+        })
+        .join(', ');
+    }
+    if (typeof detail === 'object' && detail !== null) {
+      return detail.message || detail.code || JSON.stringify(detail);
+    }
+    return String(detail);
+  }
+
+  if (err.message && typeof err.message === 'string') {
+    if (err.message.includes('Network Error')) {
+      return 'Cannot connect to backend server. Please make sure backend is running on http://localhost:8000.';
+    }
+    return err.message;
+  }
+
+  return 'Invalid email or password. Please try again.';
+};
+
 export default function LoginPage() {
   const { login } = useAuth();
   const { t } = usePreference();
@@ -38,21 +73,9 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
     } catch (err: any) {
-      console.error(err);
-      if (err.response && err.response.data && err.response.data.detail) {
-        const detail = err.response.data.detail;
-        if (typeof detail === 'string') {
-          setErrorMsg(detail);
-        } else if (Array.isArray(detail)) {
-          setErrorMsg(detail.map((d: any) => d.msg || JSON.stringify(d)).join(', '));
-        } else {
-          setErrorMsg(JSON.stringify(detail));
-        }
-      } else if (err.message && err.message.includes('Network Error')) {
-        setErrorMsg('Cannot connect to backend server. Please make sure backend is running on http://localhost:8000.');
-      } else {
-        setErrorMsg('Invalid email or password. Please try again.');
-      }
+      console.error('Login error details:', err);
+      const safeMessage = normalizeErrorMessage(err);
+      setErrorMsg(safeMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -84,12 +107,12 @@ export default function LoginPage() {
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 <span>
-                  {errorMsg.toLowerCase().includes("verify your email") 
+                  {typeof errorMsg === 'string' && errorMsg.toLowerCase().includes("verify your email") 
                     ? t('loginUnverifiedError') 
                     : errorMsg}
                 </span>
               </div>
-              {errorMsg.toLowerCase().includes("verify your email") && (
+              {typeof errorMsg === 'string' && errorMsg.toLowerCase().includes("verify your email") && (
                 <Link
                   href={`/verify-email?email=${encodeURIComponent(watch('email') || '')}`}
                   className="ml-6 text-primary hover:underline font-semibold text-xs mt-1 block"

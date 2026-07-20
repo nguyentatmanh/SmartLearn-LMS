@@ -1,15 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { usePreference } from '@/context/PreferenceContext';
-import { GraduationCap, Sun, Moon, Globe, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
+import { GraduationCap, Sun, Moon, Languages, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
 
 export default function AppHeader() {
   const { isAuthenticated, user, logout } = useAuth();
   const { theme, toggleTheme, language, setLanguage, t, isMounted } = usePreference();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isHomepage = !pathname || pathname === '/';
+  const isAuth = mounted && isAuthenticated;
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'vi' : 'en');
@@ -20,99 +30,137 @@ export default function AppHeader() {
     return user?.role === 'teacher' ? '/dashboard/teacher' : '/dashboard/student';
   };
 
+  // Close mobile menu on Escape
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape' && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
+  const navLinks = [
+    { href: '#features', labelKey: 'navFeatures' },
+    { href: '#solutions', labelKey: 'navSolutions' },
+    { href: '#how-it-works', labelKey: 'navHowItWorks' },
+    { href: '#responsible-ai', labelKey: 'navResponsibleAI' },
+  ];
+
   return (
-    <header className="sticky top-0 z-40 w-full glass border-b border-border backdrop-blur-md transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header suppressHydrationWarning className="sticky top-0 z-40 w-full bg-card/90 backdrop-blur-md border-b border-border transition-colors duration-200">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <GraduationCap className="h-7 w-7 text-primary" aria-hidden="true" />
-          <span className="text-xl font-bold tracking-tight text-foreground">{"SmartLearn "}<span className="text-primary">{"LMS"}</span></span>
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring px-1 py-0.5"
+          aria-label="SmartLearn LMS Home"
+        >
+          <GraduationCap className="h-6 w-6 text-primary shrink-0" aria-hidden="true" />
+          <span className="text-lg font-bold tracking-tight text-foreground">
+            SmartLearn <span className="text-primary">LMS</span>
+          </span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          {isAuthenticated && (
+        {/* Section Navigation Links — desktop only, homepage only */}
+        {isHomepage && (
+          <nav className="hidden lg:flex items-center gap-1 text-[13px] font-medium text-muted-foreground" aria-label="Page sections">
+            {navLinks.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="relative px-3 py-1.5 rounded-lg hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {t(link.labelKey as any)}
+              </a>
+            ))}
+          </nav>
+        )}
+
+        {/* Desktop Controls */}
+        <nav className="hidden md:flex items-center gap-2">
+          {isAuth && (
             <Link
               href={getDashboardUrl()}
-              className="text-sm font-semibold hover:text-primary transition-colors flex items-center gap-1.5"
+              className="text-[13px] font-medium hover:text-primary transition-colors duration-150 flex items-center gap-1.5 px-3 py-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <LayoutDashboard className="h-4 w-4" />
               {t('dashboard')}
             </Link>
           )}
 
-          {/* Theme Switcher */}
+          {/* Theme Toggle — no title attr */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-all focus:ring-2 focus:ring-ring focus:outline-none"
-            aria-label="Toggle theme appearance"
-            title="Toggle theme"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            aria-label={mounted && isMounted ? (theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode') : 'Toggle theme'}
           >
-            {isMounted && theme === 'dark' ? (
-              <Sun className="h-4 w-4 text-amber-400" />
+            {mounted && isMounted && theme === 'dark' ? (
+              <Sun className="h-[18px] w-[18px] text-amber-400" />
             ) : (
-              <Moon className="h-4 w-4 text-indigo-500" />
+              <Moon className="h-[18px] w-[18px] text-indigo-500" />
             )}
           </button>
 
-          {/* Language Selector */}
+          {/* Language Toggle — no title attr */}
           <button
             onClick={toggleLanguage}
-            className="px-3 py-1.5 rounded-xl border border-border hover:bg-muted text-xs font-bold text-muted-foreground hover:text-foreground transition-all flex items-center gap-1.5 focus:ring-2 focus:ring-ring focus:outline-none"
-            aria-label="Switch language preference"
-            title="Switch Language"
+            className="px-2.5 py-1.5 rounded-lg hover:bg-muted text-[13px] font-semibold text-muted-foreground hover:text-foreground transition-colors duration-150 flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer"
+            aria-label="Switch language"
           >
-            <Globe className="h-3.5 w-3.5" />
+            <Languages className="h-4 w-4" />
             <span>{language === 'en' ? 'EN' : 'VI'}</span>
           </button>
 
           {/* Auth Actions */}
-          {isAuthenticated ? (
+          {isAuth ? (
             <button
               onClick={logout}
-              className="px-4 py-2 rounded-xl text-sm font-bold border border-border hover:bg-red-500/10 hover:text-danger hover:border-danger/30 transition-all flex items-center gap-1.5"
+              className="px-3.5 py-1.5 rounded-lg text-[13px] font-semibold hover:bg-rose-500/10 hover:text-rose-600 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer text-muted-foreground"
             >
               <LogOut className="h-4 w-4" />
               {t('logout')}
             </button>
           ) : (
-            <>
+            <div className="flex items-center gap-1.5 ml-1.5">
               <Link
                 href="/login"
-                className="text-sm font-semibold hover:text-primary transition-colors"
+                className="px-3.5 py-1.5 text-[13px] font-semibold text-foreground hover:text-primary transition-colors duration-150 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {t('login')}
               </Link>
               <Link
                 href="/register"
-                className="px-4 py-2 rounded-xl text-sm font-bold bg-primary hover:bg-primary/95 text-primary-foreground hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md shadow-primary/10"
+                className="px-4 py-2 rounded-lg text-[13px] font-bold bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] transition-opacity duration-150 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 {t('register')}
               </Link>
-            </>
+            </div>
           )}
         </nav>
 
-        {/* Mobile menu trigger */}
-        <div className="flex md:hidden items-center gap-2">
-          {/* Quick theme toggle for mobile header */}
+        {/* Mobile trigger */}
+        <div className="flex md:hidden items-center gap-1.5">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-xl border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Toggle theme appearance"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors duration-150"
+            aria-label={mounted && isMounted ? (theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode') : 'Toggle theme'}
           >
-            {isMounted && theme === 'dark' ? (
-              <Sun className="h-4 w-4 text-amber-400" />
+            {mounted && isMounted && theme === 'dark' ? (
+              <Sun className="h-[18px] w-[18px] text-amber-400" />
             ) : (
-              <Moon className="h-4 w-4 text-indigo-500" />
+              <Moon className="h-[18px] w-[18px] text-indigo-500" />
             )}
           </button>
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl border border-border hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Toggle mobile menu"
+            className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors duration-150"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -120,56 +168,69 @@ export default function AppHeader() {
 
       </div>
 
-      {/* Mobile Drawer Dropdown */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden glass border-t border-border py-4 px-6 space-y-4 fade-in">
-          {isAuthenticated && (
+        <div className="md:hidden bg-card border-t border-border py-4 px-5 space-y-3">
+          {isHomepage && (
+            <div className="space-y-1 pb-3 border-b border-border">
+              {navLinks.map((link) => (
+                <a
+                  key={`mobile-${link.href}`}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-2.5 text-sm font-medium text-foreground hover:text-primary transition-colors duration-150"
+                >
+                  {t(link.labelKey as any)}
+                </a>
+              ))}
+            </div>
+          )}
+
+          {isAuth && (
             <Link
               href={getDashboardUrl()}
               onClick={() => setMobileMenuOpen(false)}
-              className="block py-2.5 text-sm font-semibold hover:text-primary border-b border-border/50"
+              className="block py-2.5 text-sm font-medium hover:text-primary border-b border-border"
             >
               {t('dashboard')}
             </Link>
           )}
 
-          {/* Quick Lang Switch */}
-          <div className="flex items-center justify-between py-2 border-b border-border/50">
-            <span className="text-xs text-muted-foreground font-semibold">Language / Ngôn ngữ</span>
+          {/* Language Switch */}
+          <div className="flex items-center justify-between py-2.5 border-b border-border">
+            <span className="text-xs text-muted-foreground font-medium">Ngôn ngữ / Language</span>
             <button
               onClick={toggleLanguage}
-              className="px-4 py-1.5 rounded-lg border border-border bg-card text-xs font-bold flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg bg-surface-2 text-xs font-semibold flex items-center gap-1.5 hover:bg-muted transition-colors duration-150"
+              aria-label="Switch language"
             >
-              <Globe className="h-3.5 w-3.5" />
-              {language === 'en' ? 'EN' : 'VI'}
+              <Languages className="h-3.5 w-3.5" />
+              {language === 'en' ? 'English' : 'Tiếng Việt'}
             </button>
           </div>
 
-          {/* Logout or Auth */}
-          {isAuthenticated ? (
+          {/* Auth */}
+          {isAuth ? (
             <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                logout();
-              }}
-              className="w-full py-3 rounded-xl text-center text-sm font-bold bg-danger/10 hover:bg-danger/25 text-danger border border-danger/20 transition-all flex items-center justify-center gap-2"
+              onClick={() => { setMobileMenuOpen(false); logout(); }}
+              className="w-full py-2.5 rounded-lg text-center text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 transition-colors duration-150 flex items-center justify-center gap-2"
             >
               <LogOut className="h-4 w-4" />
               {t('logout')}
             </button>
           ) : (
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-3 rounded-xl border border-border text-center text-sm font-semibold hover:bg-muted transition-colors"
+                className="py-2.5 rounded-lg border border-border text-center text-xs font-semibold hover:bg-muted transition-colors duration-150"
               >
                 {t('login')}
               </Link>
               <Link
                 href="/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-3 rounded-xl bg-primary text-primary-foreground text-center text-sm font-bold hover:bg-primary/95 transition-colors"
+                className="py-2.5 rounded-lg bg-primary text-primary-foreground text-center text-xs font-bold hover:opacity-90 transition-opacity duration-150"
               >
                 {t('register')}
               </Link>
