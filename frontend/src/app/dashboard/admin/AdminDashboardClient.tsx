@@ -21,15 +21,10 @@ function AdminDashboardInner() {
   const tabParam = (searchParams.get('tab') as AdminTab) || 'overview';
   const { isCollapsed } = useSidebar();
 
-  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>(tabParam);
   const [pendingTeacherCount, setPendingTeacherCount] = useState(0);
   const [pendingCourseCount, setPendingCourseCount] = useState(0);
   const [adminUser, setAdminUser] = useState<{ full_name?: string; email?: string } | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (tabParam !== activeTab) {
@@ -52,18 +47,13 @@ function AdminDashboardInner() {
         console.error('Failed to fetch admin context:', err);
       }
     };
-    if (mounted) {
-      fetchAdminContext();
-    }
-  }, [mounted]);
+    fetchAdminContext();
+  }, []);
 
   const handleSelectTab = (tab: AdminTab) => {
     setActiveTab(tab);
     router.push(`/dashboard/admin?tab=${tab}`);
   };
-
-  // Hydration Guard: Server HTML (null) matches Initial Client HTML (null) 100%
-  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
@@ -102,16 +92,10 @@ function AdminDashboardInner() {
   );
 }
 
-export default function AdminDashboardPage() {
+export default function AdminDashboardClient() {
   return (
     <SidebarProvider>
-      <React.Suspense fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center p-8">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      }>
-        <AdminDashboardInner />
-      </React.Suspense>
+      <AdminDashboardInner />
     </SidebarProvider>
   );
 }
