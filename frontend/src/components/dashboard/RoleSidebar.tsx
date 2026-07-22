@@ -6,11 +6,21 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { usePreference } from '@/context/PreferenceContext';
 import { useSidebar } from '@/context/SidebarContext';
+import { cn } from '@/lib/utils';
+import { TEACHER_NAV_ICON_STYLES } from '@/components/teacher/TeacherSidebar';
 import {
   GraduationCap, LogOut, Sun, Moon, Globe,
   UserCheck, Clock, ShieldAlert, X,
   PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
+
+export interface NavItemIconStyle {
+  icon: string;
+  tileBg: string;
+  tileBorder: string;
+  hoverBg: string;
+  activeBg: string;
+}
 
 export interface NavItemConfig {
   id: string;
@@ -18,9 +28,10 @@ export interface NavItemConfig {
   label?: string;
   href?: string;
   onClick?: () => void;
-  icon: React.ComponentType<{ className?: string; 'aria-hidden'?: string }>;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number; 'aria-hidden'?: string }>;
   badge?: number;
   isActive?: boolean;
+  iconStyle?: NavItemIconStyle;
 }
 
 export interface RoleSidebarProps {
@@ -29,6 +40,7 @@ export interface RoleSidebarProps {
   workspaceTitle?: string;
   navItems: NavItemConfig[];
   extraBottomItems?: React.ReactNode;
+  hideFooterControls?: boolean;
 }
 
 export function SidebarToggle({ className = '' }: { className?: string }) {
@@ -85,7 +97,8 @@ export function RoleSidebar({
   workspaceTitleKey,
   workspaceTitle,
   navItems,
-  extraBottomItems
+  extraBottomItems,
+  hideFooterControls = false
 }: RoleSidebarProps) {
   const { isCollapsed, isOpenMobile, closeMobile } = useSidebar();
   const { user, logout } = useAuth();
@@ -178,28 +191,50 @@ export function RoleSidebar({
                 : false;
 
               const Icon = item.icon || GraduationCap;
+              const style = item.id ? TEACHER_NAV_ICON_STYLES[item.id] : undefined;
 
               const content = (
                 <div
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 relative group cursor-pointer min-h-[44px] ${
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 relative group cursor-pointer min-h-[48px]",
                     active
-                      ? 'bg-primary/10 text-primary font-bold shadow-2xs dark:bg-primary/20'
-                      : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground active:scale-[0.98]'
-                  } ${collapsed ? 'justify-center px-2' : ''}`}
+                      ? "bg-primary/10 text-primary font-bold shadow-2xs dark:bg-primary/20 border-l-2 border-primary"
+                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground active:scale-[0.98]",
+                    collapsed ? "justify-center px-2" : ""
+                  )}
                 >
-                  <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} aria-hidden="true" />
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-150 group-hover:scale-[1.05]",
+                      style
+                        ? (active ? style.activeTile : style.inactiveTile)
+                        : (active ? 'bg-primary border-primary text-primary-foreground' : 'bg-muted/60 border-border text-muted-foreground')
+                    )}
+                  >
+                    <Icon
+                      aria-hidden="true"
+                      strokeWidth={1.9}
+                      className={cn(
+                        "h-[18px] w-[18px] shrink-0 fill-none",
+                        style
+                          ? (active ? style.activeIcon : style.inactiveIcon)
+                          : (active ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground')
+                      )}
+                    />
+                  </span>
+
                   {!collapsed && <span className="truncate">{labelText}</span>}
 
-                  {/* Badge */}
                   {item.badge && item.badge > 0 ? (
                     <span
-                      className={`px-2 py-0.5 text-[10px] font-bold rounded-full transition-all shrink-0 ${
+                      className={cn(
+                        "px-2 py-0.5 text-[10px] font-bold rounded-full transition-all shrink-0",
                         collapsed
-                          ? 'absolute top-1 right-1 px-1.5 py-0.2 text-[9px] bg-amber-500 text-white'
+                          ? "absolute top-1 right-1 px-1.5 py-0.2 text-[9px] bg-amber-500 text-white"
                           : active
-                          ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
-                          : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-                      }`}
+                          ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
+                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                      )}
                     >
                       {item.badge}
                     </span>
@@ -244,80 +279,86 @@ export function RoleSidebar({
         </div>
 
         {/* Footer Area */}
-        <div className="space-y-2 pt-3 border-t border-border/40">
-          {extraBottomItems}
+        {(extraBottomItems || !hideFooterControls) && (
+          <div className="space-y-2 pt-3 border-t border-border/40">
+            {extraBottomItems}
 
-          {/* Controls row: Theme & Language */}
-          <div className={`flex items-center gap-1 p-1 bg-muted/40 rounded-xl ${collapsed ? 'flex-col' : 'justify-between'}`}>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-colors flex justify-center flex-1 w-full cursor-pointer min-h-[44px] items-center"
-              aria-label={t('common.toggleTheme')}
-              title={t('common.toggleTheme')}
-            >
-              {isMounted ? (
-                theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-indigo-500" />
-              ) : (
-                <span className="h-4 w-4 animate-pulse bg-muted-foreground/20 rounded-full" />
-              )}
-            </button>
-            {!collapsed && <div className="h-4 w-[1px] bg-border/40 shrink-0" />}
-            <button
-              onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
-              className="p-2 rounded-lg hover:bg-card text-xs font-bold text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1 flex-1 w-full cursor-pointer min-h-[44px]"
-              aria-label={t('common.changeLanguage')}
-              title={t('common.changeLanguage')}
-            >
-              <Globe className="h-3.5 w-3.5" />
-              <span>{isMounted ? (language === 'en' ? 'EN' : 'VI') : 'EN'}</span>
-            </button>
-          </div>
+            {!hideFooterControls && (
+              <>
+                {/* Controls row: Theme & Language */}
+                <div className={`flex items-center gap-1 p-1 bg-muted/40 rounded-xl ${collapsed ? 'flex-col' : 'justify-between'}`}>
+                  <button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-colors flex justify-center flex-1 w-full cursor-pointer min-h-[44px] items-center"
+                    aria-label={t('common.toggleTheme')}
+                    title={t('common.toggleTheme')}
+                  >
+                    {isMounted ? (
+                      theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-indigo-500" />
+                    ) : (
+                      <span className="h-4 w-4 animate-pulse bg-muted-foreground/20 rounded-full" />
+                    )}
+                  </button>
+                  {!collapsed && <div className="h-4 w-[1px] bg-border/40 shrink-0" />}
+                  <button
+                    onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
+                    className="p-2 rounded-lg hover:bg-card text-xs font-bold text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1 flex-1 w-full cursor-pointer min-h-[44px]"
+                    aria-label={t('common.changeLanguage')}
+                    title={t('common.changeLanguage')}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>{isMounted ? (language === 'en' ? 'EN' : 'VI') : 'EN'}</span>
+                  </button>
+                </div>
 
-          {/* User Profile Card */}
-          <div className={`flex items-center gap-2.5 p-2 rounded-xl bg-muted/30 ${collapsed ? 'justify-center p-1.5' : ''}`}>
-            <div className="h-8 w-8 bg-primary/10 text-primary font-bold rounded-lg flex items-center justify-center uppercase shrink-0 text-xs">
-              {displayName.charAt(0)}
-            </div>
-            {!collapsed && (
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold truncate text-foreground">{displayName}</p>
-                <div className="flex items-center gap-1 mt-0.5">
-                  {role === 'teacher' && approvalStatus === 'approved' && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
-                      <UserCheck className="h-3 w-3" /> {t('adminLabelApproved')}
-                    </span>
-                  )}
-                  {role === 'teacher' && approvalStatus === 'pending' && (
-                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5">
-                      <Clock className="h-3 w-3" /> {t('adminLabelPending')}
-                    </span>
-                  )}
-                  {role === 'teacher' && approvalStatus === 'rejected' && (
-                    <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-0.5">
-                      <ShieldAlert className="h-3 w-3" /> {t('adminLabelRejected')}
-                    </span>
-                  )}
-                  {role !== 'teacher' && (
-                    <span className="text-[10px] text-muted-foreground capitalize truncate">
-                      {user?.role || role}
-                    </span>
+                {/* User Profile Card */}
+                <div className={`flex items-center gap-2.5 p-2 rounded-xl bg-muted/30 ${collapsed ? 'justify-center p-1.5' : ''}`}>
+                  <div className="h-8 w-8 bg-primary/10 text-primary font-bold rounded-lg flex items-center justify-center uppercase shrink-0 text-xs">
+                    {displayName.charAt(0)}
+                  </div>
+                  {!collapsed && (
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold truncate text-foreground">{displayName}</p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {role === 'teacher' && approvalStatus === 'approved' && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
+                            <UserCheck className="h-3 w-3" /> {t('adminLabelApproved')}
+                          </span>
+                        )}
+                        {role === 'teacher' && approvalStatus === 'pending' && (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5">
+                            <Clock className="h-3 w-3" /> {t('adminLabelPending')}
+                          </span>
+                        )}
+                        {role === 'teacher' && approvalStatus === 'rejected' && (
+                          <span className="text-[10px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-0.5">
+                            <ShieldAlert className="h-3 w-3" /> {t('adminLabelRejected')}
+                          </span>
+                        )}
+                        {role !== 'teacher' && (
+                          <span className="text-[10px] text-muted-foreground capitalize truncate">
+                            {user?.role || role}
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
+
+                {/* Logout button */}
+                <button
+                  onClick={logout}
+                  className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-rose-500/10 hover:text-rose-600 text-xs font-semibold transition-all duration-150 text-muted-foreground cursor-pointer min-h-[44px] ${collapsed ? 'px-2' : ''}`}
+                  aria-label={t('logout')}
+                  title={t('logout')}
+                >
+                  <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {!collapsed && <span>{t('logout')}</span>}
+                </button>
+              </>
             )}
           </div>
-
-          {/* Logout button */}
-          <button
-            onClick={logout}
-            className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-rose-500/10 hover:text-rose-600 text-xs font-semibold transition-all duration-150 text-muted-foreground cursor-pointer min-h-[44px] ${collapsed ? 'px-2' : ''}`}
-            aria-label={t('logout')}
-            title={t('logout')}
-          >
-            <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {!collapsed && <span>{t('logout')}</span>}
-          </button>
-        </div>
+        )}
       </div>
     );
   };

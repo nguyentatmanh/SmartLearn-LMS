@@ -41,7 +41,7 @@ export default function ActionCenter({ user, courses, draftCount }: ActionCenter
     <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-sm">
       <div className="flex items-center gap-2 pb-2 border-b border-border/40">
         <AlertCircle className="h-4 w-4 text-amber-500" />
-        <h3 className="font-extrabold text-xs text-foreground uppercase tracking-wider">
+        <h3 className="font-bold text-xs text-foreground">
           {t('actionCenterTitle')}
         </h3>
       </div>

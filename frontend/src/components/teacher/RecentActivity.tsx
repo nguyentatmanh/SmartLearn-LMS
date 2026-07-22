@@ -44,7 +44,7 @@ export default function RecentActivity({ courses }: RecentActivityProps) {
         <div className="flex items-center justify-between pb-2 border-b border-border/40">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-primary" />
-            <h3 className="font-extrabold text-xs text-foreground uppercase tracking-wider">
+            <h3 className="font-bold text-xs text-foreground">
               {t('recentActivityTitle')}
             </h3>
           </div>
