@@ -112,6 +112,7 @@ export const AdminDetailDrawer: React.FC<AdminDetailDrawerProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="drawer-title"
+      aria-describedby={subtitle ? 'drawer-subtitle' : undefined}
     >
       {/* Backdrop overlay */}
       <div
@@ -129,7 +130,7 @@ export const AdminDetailDrawer: React.FC<AdminDetailDrawerProps> = ({
           {/* Mobile Back button */}
           <button
             onClick={onClose}
-            className="sm:hidden flex items-center gap-1.5 p-2 rounded-xl text-primary font-semibold text-xs hover:bg-primary/10 transition-colors min-h-[44px] min-w-[44px] focus-visible:ring-2 focus-visible:ring-primary"
+            className="sm:hidden flex items-center gap-1.5 p-2 rounded-xl text-primary font-semibold text-xs hover:bg-primary/10 transition-colors min-h-[44px] min-w-[44px] focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
             aria-label={t('admin.users.detailBack')}
           >
             <ArrowLeft className="w-4 h-4" />
@@ -140,7 +141,7 @@ export const AdminDetailDrawer: React.FC<AdminDetailDrawerProps> = ({
             <h2 id="drawer-title" className="text-lg sm:text-xl font-bold text-foreground truncate">
               {title}
             </h2>
-            {subtitle && <p className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
+            {subtitle && <p id="drawer-subtitle" className="text-xs text-muted-foreground mt-0.5 truncate">{subtitle}</p>}
           </div>
 
           {/* Desktop Close button */}

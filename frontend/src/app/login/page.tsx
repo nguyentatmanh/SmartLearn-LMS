@@ -8,7 +8,8 @@ import * as z from 'zod';
 import { useAuth } from '@/context/AuthContext';
 import { usePreference } from '@/context/PreferenceContext';
 import AppHeader from '@/components/Header';
-import { GraduationCap, Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import SmartLearnLogo from '@/components/brand/SmartLearnLogo';
+import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -91,11 +92,10 @@ export default function LoginPage() {
         <div className="absolute bottom-1/4 right-1/4 w-72 sm:w-96 h-72 sm:h-96 bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
 
         <div className="w-full max-w-md glass rounded-2xl p-6 sm:p-8 border border-border relative shadow-xl space-y-6 fade-in">
-          
           {/* Logo and header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-xl mb-2">
-              <GraduationCap className="h-8 w-8 text-primary" />
+            <div className="flex justify-center mb-1">
+              <SmartLearnLogo variant="mark" markSize={44} />
             </div>
             <h2 className="text-2xl font-extrabold tracking-tight">{t('loginTitle')}</h2>
             <p className="text-sm text-muted-foreground">{t('loginSubtitle')}</p>

@@ -1,16 +1,16 @@
 'use client';
 
 import React from 'react';
-import { RoleSidebar, NavItemConfig } from '@/components/dashboard/RoleSidebar';
+import { RoleSidebar, NavItemConfig, GLOBAL_NAV_ICON_STYLES } from '@/components/dashboard/RoleSidebar';
 import { AdminTab } from '@/types/admin';
 import {
   LayoutDashboard,
-  Users,
-  UserCheck,
-  BookOpen,
+  UsersRound,
+  GraduationCap,
+  BookOpenCheck,
   BarChart3,
-  ShieldAlert,
-  Settings
+  History,
+  Settings2
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -29,13 +29,64 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   pendingCourseCount = 0
 }) => {
   const navItems: NavItemConfig[] = [
-    { id: 'overview', labelKey: 'admin.navigation.overview', icon: LayoutDashboard, onClick: () => onSelectTab('overview'), isActive: activeTab === 'overview' },
-    { id: 'users', labelKey: 'admin.navigation.users', icon: Users, onClick: () => onSelectTab('users'), isActive: activeTab === 'users' },
-    { id: 'teacher-approvals', labelKey: 'admin.navigation.teacherApprovals', icon: UserCheck, badge: pendingTeacherCount, onClick: () => onSelectTab('teacher-approvals'), isActive: activeTab === 'teacher-approvals' },
-    { id: 'courses', labelKey: 'admin.navigation.courses', icon: BookOpen, badge: pendingCourseCount, onClick: () => onSelectTab('courses'), isActive: activeTab === 'courses' },
-    { id: 'reports', labelKey: 'admin.navigation.reports', icon: BarChart3, onClick: () => onSelectTab('reports'), isActive: activeTab === 'reports' },
-    { id: 'audit-logs', labelKey: 'admin.navigation.auditLogs', icon: ShieldAlert, onClick: () => onSelectTab('audit-logs'), isActive: activeTab === 'audit-logs' },
-    { id: 'settings', labelKey: 'admin.navigation.settings', icon: Settings, onClick: () => onSelectTab('settings'), isActive: activeTab === 'settings' }
+    {
+      id: 'overview',
+      labelKey: 'admin.navigation.overview',
+      icon: LayoutDashboard,
+      onClick: () => onSelectTab('overview'),
+      isActive: activeTab === 'overview',
+      iconStyle: GLOBAL_NAV_ICON_STYLES['overview']
+    },
+    {
+      id: 'users',
+      labelKey: 'admin.navigation.users',
+      icon: UsersRound,
+      onClick: () => onSelectTab('users'),
+      isActive: activeTab === 'users',
+      iconStyle: GLOBAL_NAV_ICON_STYLES['users']
+    },
+    {
+      id: 'teacher-approvals',
+      labelKey: 'admin.navigation.teacherApprovals',
+      icon: GraduationCap,
+      badge: pendingTeacherCount,
+      onClick: () => onSelectTab('teacher-approvals'),
+      isActive: activeTab === 'teacher-approvals',
+      iconStyle: GLOBAL_NAV_ICON_STYLES['teacher-approvals']
+    },
+    {
+      id: 'courses',
+      labelKey: 'admin.navigation.courses',
+      icon: BookOpenCheck,
+      badge: pendingCourseCount,
+      onClick: () => onSelectTab('courses'),
+      isActive: activeTab === 'courses',
+      iconStyle: GLOBAL_NAV_ICON_STYLES['courses']
+    },
+    {
+      id: 'reports',
+      labelKey: 'admin.navigation.reports',
+      icon: BarChart3,
+      onClick: () => onSelectTab('reports'),
+      isActive: activeTab === 'reports',
+      iconStyle: GLOBAL_NAV_ICON_STYLES['reports']
+    },
+    {
+      id: 'audit-logs',
+      labelKey: 'admin.navigation.auditLogs',
+      icon: History,
+      onClick: () => onSelectTab('audit-logs'),
+      isActive: activeTab === 'audit-logs',
+      iconStyle: GLOBAL_NAV_ICON_STYLES['audit-logs']
+    },
+    {
+      id: 'settings',
+      labelKey: 'admin.navigation.settings',
+      icon: Settings2,
+      onClick: () => onSelectTab('settings'),
+      isActive: activeTab === 'settings',
+      iconStyle: GLOBAL_NAV_ICON_STYLES['settings']
+    }
   ];
 
   return (
@@ -43,6 +94,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       role="admin"
       workspaceTitleKey="admin.workspaceTitle"
       navItems={navItems}
+      hideFooterControls={true}
     />
   );
 };

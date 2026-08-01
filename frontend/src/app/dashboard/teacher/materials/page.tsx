@@ -130,9 +130,16 @@ export default function TeacherMaterials() {
         router.push('/dashboard/student');
       } else if (user.role === 'admin') {
         router.push('/dashboard/admin');
+      } else if (user.role === 'teacher') {
+        if (user.email_verified === false) {
+          router.push(`/verify-email?email=${encodeURIComponent(user.email)}`);
+        } else if (!user.is_active) {
+          logout();
+          router.push('/login?error=suspended');
+        }
       }
     }
-  }, [user, authLoading, router, isMounted]);
+  }, [user, authLoading, router, isMounted, logout]);
 
   // Fetch courses and lessons
   const fetchMetadata = async () => {

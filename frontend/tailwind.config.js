@@ -40,8 +40,31 @@ module.exports = {
           800: '#5b21b6',
           950: '#0f172a',
         },
+        // Landing page scoped colors (used via CSS variables)
+        'landing-bg': 'var(--landing-bg)',
+        'landing-fg': 'var(--landing-fg)',
+        'landing-primary': 'var(--landing-primary)',
+        'landing-secondary': 'var(--landing-secondary)',
+        'landing-soft': 'var(--landing-soft)',
+        'landing-muted': 'var(--landing-muted)',
+        'landing-border': 'var(--landing-border)',
+        'landing-success': 'var(--landing-success)',
+        'landing-surface': 'var(--landing-surface)',
+      },
+      fontFamily: {
+        landing: ['var(--font-be-vietnam-pro)', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      keyframes: {
+        'landing-float': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-12px)' },
+        },
+      },
+      animation: {
+        'landing-float': 'landing-float 6s ease-in-out infinite',
       },
     },
   },
   plugins: [],
 }
+

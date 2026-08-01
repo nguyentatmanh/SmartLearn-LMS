@@ -54,17 +54,16 @@
   --surface-subtle: #1A2234;
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow-x: hidden;
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-/* Smooth scrolling for anchor navigation */
+/* Global scroll behavior and header offset */
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: var(--landing-header-height, 84px);
+}
+
+@media (max-width: 767px) {
+  html {
+    scroll-padding-top: 72px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -75,6 +74,230 @@ html {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* ──────────────────────────────────────────────────────────
+   Landing Page Scoped Design Tokens, Motion Tokens & Utilities
+   These ONLY apply inside .landing-page and do NOT affect
+   any dashboard, login, register, or admin interface.
+   ────────────────────────────────────────────────────────── */
+.landing-page {
+  --landing-header-height: 84px;
+  --landing-bg: #FBFAFF;
+  --landing-fg: #111427;
+  --landing-primary: #5B46D8;
+  --landing-primary-hover: #3426A8;
+  --landing-secondary: #7367E8;
+  --landing-soft: #F0EDFF;
+  --landing-muted: #667085;
+  --landing-border: #E8E6F2;
+  --landing-success: #2FAE91;
+  --landing-surface: #FFFFFF;
+  --landing-gradient: linear-gradient(135deg, #5142D7 0%, #745DE8 100%);
+
+  /* Motion Tokens */
+  --motion-instant: 120ms;
+  --motion-fast: 180ms;
+  --motion-base: 320ms;
+  --motion-reveal: 600ms;
+  --motion-hero: 760ms;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (max-width: 767px) {
+  .landing-page {
+    --landing-header-height: 72px;
+  }
+}
+
+.dark .landing-page {
+  --landing-bg: #0C0E1A;
+  --landing-fg: #F1F5F9;
+  --landing-primary: #7367E8;
+  --landing-primary-hover: #9B8FFF;
+  --landing-secondary: #8B7FFF;
+  --landing-soft: #1C1A3A;
+  --landing-muted: #94A3B8;
+  --landing-border: #1E2236;
+  --landing-success: #34D399;
+  --landing-surface: #141726;
+  --landing-gradient: linear-gradient(135deg, #6355E0 0%, #8B7FFF 100%);
+}
+
+/* Reusable Landing Viewport Section */
+.landing-screen-section {
+  min-height: calc(100svh - var(--landing-header-height));
+  scroll-margin-top: var(--landing-header-height);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+@media (max-width: 767px) {
+  .landing-screen-section {
+    min-height: auto;
+    padding-block: 56px;
+  }
+}
+
+/* Landing section scroll offset backup */
+.landing-page section[id] {
+  scroll-margin-top: var(--landing-header-height);
+}
+
+/* Landing hero gradient text */
+.landing-gradient-text {
+  background: var(--landing-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Landing Motion Keyframes & Utilities ──────────────── */
+
+@keyframes landing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-hero-scale {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes landing-float-ambient {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes landing-line-expand {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Entrance utility classes */
+.landing-animate-fade-up {
+  animation: landing-fade-up var(--motion-hero) var(--ease-out) forwards;
+}
+
+.landing-animate-hero-scale {
+  animation: landing-hero-scale var(--motion-hero) var(--ease-out) forwards;
+}
+
+.landing-ambient-float {
+  animation: landing-float-ambient 7s ease-in-out infinite;
+}
+
+.landing-timeline-line {
+  transform-origin: left;
+  animation: landing-line-expand var(--motion-hero) var(--ease-out) forwards;
+}
+
+/* Scroll reveal states */
+.landing-reveal-hidden {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity var(--motion-reveal) var(--ease-out),
+              transform var(--motion-reveal) var(--ease-out);
+  will-change: opacity, transform;
+}
+
+.landing-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Interactive Card & Button Micro-Interactions */
+.landing-interactive-card {
+  transition: transform var(--motion-base) var(--ease-out),
+              box-shadow var(--motion-base) var(--ease-out),
+              border-color var(--motion-base) var(--ease-out);
+  will-change: transform, box-shadow;
+}
+
+.landing-interactive-card:hover {
+  transform: translateY(-4px);
+}
+
+.landing-interactive-btn {
+  transition: transform var(--motion-fast) var(--ease-out),
+              box-shadow var(--motion-fast) var(--ease-out),
+              background-color var(--motion-fast) var(--ease-out);
+  will-change: transform, box-shadow;
+}
+
+.landing-interactive-btn:hover {
+  transform: translateY(-2px);
+}
+
+.landing-interactive-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.landing-interactive-icon {
+  transition: transform var(--motion-base) var(--ease-spring),
+              background-color var(--motion-base) var(--ease-out),
+              box-shadow var(--motion-base) var(--ease-out);
+  will-change: transform;
+}
+
+.landing-interactive-icon:hover {
+  transform: translateY(-3px) scale(1.04);
+}
+
+/* Complete Reduced Motion Overrides */
+@media (prefers-reduced-motion: reduce) {
+  .landing-page *,
+  .landing-page *::before,
+  .landing-page *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .landing-reveal-hidden {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .landing-ambient-float {
+    animation: none !important;
+  }
+  .landing-timeline-line {
+    transform: none !important;
+    animation: none !important;
   }
 }
 
@@ -110,4 +333,22 @@ html {
 
 .bg-muted\/40 {
   background-color: color-mix(in srgb, var(--muted) 40%, transparent) !important;
+}
+
+/* System status pulsing LED indicator */
+@keyframes pulse-led {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+.pulse-led {
+  animation: pulse-led 2s ease-in-out infinite;
+}
+
+/* Fade-in utility */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fade-in 0.2s ease-out forwards;
 }

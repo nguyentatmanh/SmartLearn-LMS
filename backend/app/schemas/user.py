@@ -105,16 +105,17 @@ class UserProfileResponse(BaseModel):
 
 
 class TeacherProfileResponse(BaseModel):
-    faculty: str
-    department: str
-    specialization: str
+    faculty: Optional[str] = "N/A"
+    department: Optional[str] = "N/A"
+    specialization: Optional[str] = "N/A"
     academic_title: Optional[str] = None
     teacher_code: Optional[str] = None
     bio: Optional[str] = None
-    approval_status: TeacherApprovalStatus
+    approval_status: TeacherApprovalStatus = TeacherApprovalStatus.PENDING
     rejection_reason: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
+
 
 
 class UserResponse(BaseModel):
@@ -124,6 +125,8 @@ class UserResponse(BaseModel):
     role: UserRole
     is_active: bool
     email_verified: bool
+    email_verified_at: Optional[datetime] = None
+    email_verification_source: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     profile: Optional[UserProfileResponse] = None
@@ -155,6 +158,28 @@ class UserResponse(BaseModel):
         return data
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminVerifierInfo(BaseModel):
+    id: int
+    full_name: str
+    email: EmailStr
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class VerifyEmailManualRequest(BaseModel):
+    reason: str
+
+    @field_validator("reason")
+    @classmethod
+    def validate_reason(cls, v: str) -> str:
+        cleaned = v.strip()
+        if len(cleaned) < 10:
+            raise ValueError("Reason must be at least 10 characters long.")
+        if len(cleaned) > 500:
+            raise ValueError("Reason cannot exceed 500 characters.")
+        return cleaned
 
 
 class RegisterResponse(BaseModel):
@@ -199,13 +224,13 @@ class StudentProfileSummary(BaseModel):
 
 
 class TeacherProfileDetail(BaseModel):
-    faculty: str
-    department: str
-    specialization: str
+    faculty: Optional[str] = "N/A"
+    department: Optional[str] = "N/A"
+    specialization: Optional[str] = "N/A"
     academic_title: Optional[str] = None
     teacher_code: Optional[str] = None
     bio: Optional[str] = None
-    approval_status: TeacherApprovalStatus
+    approval_status: TeacherApprovalStatus = TeacherApprovalStatus.PENDING
     rejection_reason: Optional[str] = None
     reviewed_at: Optional[datetime] = None
     reviewed_by: Optional[int] = None
@@ -249,6 +274,11 @@ class UserDetailResponse(BaseModel):
     role: UserRole
     is_active: bool
     email_verified: bool
+    email_verified_at: Optional[datetime] = None
+    email_verification_source: Optional[str] = None
+    email_verified_by_user_id: Optional[int] = None
+    email_verified_by: Optional[AdminVerifierInfo] = None
+    email_verification_note: Optional[str] = None
     is_approved: bool
     created_at: datetime
     updated_at: datetime

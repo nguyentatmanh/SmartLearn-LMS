@@ -47,7 +47,7 @@ const courseSchema = z.object({
 type CourseSchemaType = z.infer<typeof courseSchema>;
 
 export default function TeacherCoursesPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const { language, t, isMounted } = usePreference();
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -90,9 +90,16 @@ export default function TeacherCoursesPage() {
         router.push('/dashboard/student');
       } else if (user.role === 'admin') {
         router.push('/dashboard/admin');
+      } else if (user.role === 'teacher') {
+        if (user.email_verified === false) {
+          router.push(`/verify-email?email=${encodeURIComponent(user.email)}`);
+        } else if (!user.is_active) {
+          logout();
+          router.push('/login?error=suspended');
+        }
       }
     }
-  }, [user, authLoading, router, isMounted]);
+  }, [user, authLoading, router, isMounted, logout]);
 
   const fetchData = async () => {
     setLoading(true);

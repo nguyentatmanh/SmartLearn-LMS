@@ -18,7 +18,8 @@ from app.models.enrollment import Enrollment
 from app.models.progress import LessonProgress
 from app.schemas.user import (
     UserResponse, UserDetailResponse, DiscriminatedUserProfile,
-    StudentProfileSummary, TeacherProfileDetail, AdminProfileSummary, UserActivityItem
+    StudentProfileSummary, TeacherProfileDetail, AdminProfileSummary, UserActivityItem,
+    VerifyEmailManualRequest
 )
 from app.schemas.course import AdminCourseResponse, CourseStatusPatchRequest, CourseReviewRequestNotes
 from app.schemas.audit import AuditLogResponse
@@ -228,32 +229,44 @@ def get_user_detail(
 
     elif user.role == UserRole.TEACHER:
         tp = user.teacher_profile
+        total_courses = db.query(func.count(Course.id)).filter(Course.teacher_id == user_id).scalar() or 0
+        published_courses = db.query(func.count(Course.id)).filter(Course.teacher_id == user_id, Course.status == CourseStatus.PUBLISHED).scalar() or 0
+        total_students = (
+            db.query(func.count(func.distinct(Enrollment.student_id)))
+            .join(Course, Enrollment.course_id == Course.id)
+            .filter(Course.teacher_id == user_id)
+            .scalar() or 0
+        )
+
         if tp:
-            total_courses = db.query(func.count(Course.id)).filter(Course.teacher_id == user_id).scalar() or 0
-            published_courses = db.query(func.count(Course.id)).filter(Course.teacher_id == user_id, Course.status == CourseStatus.PUBLISHED).scalar() or 0
-            total_students = (
-                db.query(func.count(func.distinct(Enrollment.student_id)))
-                .join(Course, Enrollment.course_id == Course.id)
-                .filter(Course.teacher_id == user_id)
-                .scalar() or 0
-            )
-
             reviewer_name = tp.reviewer.full_name if tp.reviewer else None
-
             discriminated_profile = DiscriminatedUserProfile(
                 type="teacher",
                 teacher_details=TeacherProfileDetail(
-                    faculty=tp.faculty,
-                    department=tp.department,
-                    specialization=tp.specialization,
+                    faculty=tp.faculty or "N/A",
+                    department=tp.department or "N/A",
+                    specialization=tp.specialization or "N/A",
                     academic_title=tp.academic_title,
                     teacher_code=tp.teacher_code,
                     bio=tp.bio,
-                    approval_status=tp.approval_status,
+                    approval_status=tp.approval_status or TeacherApprovalStatus.PENDING,
                     rejection_reason=tp.rejection_reason,
                     reviewed_at=tp.reviewed_at,
                     reviewed_by=tp.reviewed_by,
                     reviewer_name=reviewer_name,
+                    total_courses=total_courses,
+                    published_courses=published_courses,
+                    total_students=total_students
+                )
+            )
+        else:
+            discriminated_profile = DiscriminatedUserProfile(
+                type="teacher",
+                teacher_details=TeacherProfileDetail(
+                    faculty="N/A",
+                    department="N/A",
+                    specialization="N/A",
+                    approval_status=TeacherApprovalStatus.PENDING,
                     total_courses=total_courses,
                     published_courses=published_courses,
                     total_students=total_students
@@ -309,6 +322,17 @@ def get_user_detail(
             )
         )
 
+    verifier_info = None
+    email_verified_by_id = getattr(user, 'email_verified_by_user_id', None)
+    if email_verified_by_id:
+        verifier = db.query(User).filter(User.id == email_verified_by_id).first()
+        if verifier:
+            verifier_info = {
+                "id": verifier.id,
+                "full_name": verifier.full_name,
+                "email": verifier.email
+            }
+
     return UserDetailResponse(
         id=user.id,
         email=user.email,
@@ -316,6 +340,11 @@ def get_user_detail(
         role=user.role,
         is_active=user.is_active,
         email_verified=user.email_verified,
+        email_verified_at=getattr(user, 'email_verified_at', None),
+        email_verification_source=getattr(user, 'email_verification_source', None),
+        email_verified_by_user_id=email_verified_by_id,
+        email_verified_by=verifier_info,
+        email_verification_note=getattr(user, 'email_verification_note', None),
         is_approved=user.is_approved,
         created_at=user.created_at,
         updated_at=user.updated_at,
@@ -362,6 +391,25 @@ def toggle_user_active(
 
     ip_address = request.client.host if request.client else None
     user = AdminUserService.toggle_user_active(db, user_id, is_active, current_admin.id, ip_address)
+    return UserResponse.model_validate(user)
+
+
+@router.post("/users/{user_id}/verify-email")
+def verify_user_email(
+    user_id: int,
+    payload: VerifyEmailManualRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(deps.get_current_active_admin)
+) -> Any:
+    ip_address = request.client.host if request.client else None
+    user = AdminUserService.manual_verify_user_email(
+        db=db,
+        target_user_id=user_id,
+        reason=payload.reason,
+        admin_id=current_admin.id,
+        ip_address=ip_address
+    )
     return UserResponse.model_validate(user)
 
 
@@ -612,19 +660,59 @@ def get_admin_reports(
     end_date = date_to or date.today()
     start_date = date_from or (end_date - timedelta(days=30))
 
+    if start_date > end_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start date must be before or equal to end date.")
+
     if (end_date - start_date).days > 365:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Maximum report date range is 365 days.")
 
+    next_day_end = end_date + timedelta(days=1)
+
     new_users_count = (
         db.query(func.count(User.id))
-        .filter(User.created_at >= start_date, User.created_at <= end_date + timedelta(days=1))
+        .filter(User.created_at >= start_date, User.created_at < next_day_end)
         .scalar() or 0
     )
     new_courses_count = (
         db.query(func.count(Course.id))
-        .filter(Course.created_at >= start_date, Course.created_at <= end_date + timedelta(days=1))
+        .filter(Course.created_at >= start_date, Course.created_at < next_day_end)
         .scalar() or 0
     )
+    new_enrollments_count = (
+        db.query(func.count(Enrollment.id))
+        .filter(Enrollment.enrolled_at >= start_date, Enrollment.enrolled_at < next_day_end)
+        .scalar() or 0
+    )
+    active_accounts_period_count = (
+        db.query(func.count(func.distinct(AuditLog.actor_id)))
+        .filter(AuditLog.created_at >= start_date, AuditLog.created_at < next_day_end, AuditLog.actor_id.isnot(None))
+        .scalar() or 0
+    )
+
+    # Time-series data points (by day or date bucket)
+    delta_days = (end_date - start_date).days
+    time_series = []
+    
+    # If date range is <= 60 days, return daily points; otherwise sample weekly
+    step_days = 1 if delta_days <= 60 else (7 if delta_days <= 180 else 30)
+    curr = start_date
+    while curr <= end_date:
+        nxt = curr + timedelta(days=step_days)
+        users_in_bucket = db.query(func.count(User.id)).filter(User.created_at >= curr, User.created_at < nxt).scalar() or 0
+        courses_in_bucket = db.query(func.count(Course.id)).filter(Course.created_at >= curr, Course.created_at < nxt).scalar() or 0
+        enrollments_in_bucket = db.query(func.count(Enrollment.id)).filter(Enrollment.enrolled_at >= curr, Enrollment.enrolled_at < nxt).scalar() or 0
+
+        time_series.append({
+            "bucket": curr.strftime("%Y-%m-%d"),
+            "date": curr.isoformat(),
+            "users": users_in_bucket,
+            "new_users": users_in_bucket,
+            "courses": courses_in_bucket,
+            "new_courses": courses_in_bucket,
+            "enrollments": enrollments_in_bucket,
+            "new_enrollments": enrollments_in_bucket
+        })
+        curr = nxt
 
     return {
         "date_from": start_date.isoformat(),
@@ -632,8 +720,12 @@ def get_admin_reports(
         "granularity": granularity,
         "metrics": {
             "new_users": new_users_count,
-            "new_courses": new_courses_count
-        }
+            "new_courses": new_courses_count,
+            "new_enrollments": new_enrollments_count,
+            "active_accounts_period": active_accounts_period_count,
+            "active_accounts_in_window": active_accounts_period_count
+        },
+        "time_series": time_series
     }
 
 

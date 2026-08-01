@@ -38,6 +38,12 @@ export function PreferenceProvider({ children }: { children: React.ReactNode }) 
 
       document.documentElement.classList.remove('light', 'dark');
       document.documentElement.classList.add(initialTheme);
+
+      // Sync HTML lang attribute and document title
+      document.documentElement.lang = initialLanguage === 'vi' ? 'vi' : 'en';
+      document.title = initialLanguage === 'vi' 
+        ? 'SmartLearn LMS — Nền tảng quản lý học tập' 
+        : 'SmartLearn LMS — Learning Management Platform';
     } catch (e) {
       console.error('Failed to access localStorage for preferences:', e);
     } finally {
@@ -65,6 +71,11 @@ export function PreferenceProvider({ children }: { children: React.ReactNode }) 
     } catch (e) {
       console.error('Failed to save language preference:', e);
     }
+    // Sync HTML lang attribute and document title
+    document.documentElement.lang = lang === 'vi' ? 'vi' : 'en';
+    document.title = lang === 'vi' 
+      ? 'SmartLearn LMS — Nền tảng quản lý học tập' 
+      : 'SmartLearn LMS — Learning Management Platform';
   };
 
   const t = (key: string, params?: Record<string, string | number>): string => {

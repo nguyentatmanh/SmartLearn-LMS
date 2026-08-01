@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
@@ -155,6 +156,69 @@ class AdminUserService:
             target_id=str(target_user.id),
             result="success",
             details={"is_active": is_active},
+            ip_address=ip_address
+        )
+
+        db.commit()
+        db.refresh(target_user)
+        return target_user
+
+    @staticmethod
+    def manual_verify_user_email(
+        db: Session,
+        target_user_id: int,
+        reason: str,
+        admin_id: int,
+        ip_address: Optional[str] = None
+    ) -> User:
+        target_user = (
+            db.query(User)
+            .options(
+                selectinload(User.profile),
+                selectinload(User.teacher_profile),
+                selectinload(User.courses),
+                selectinload(User.enrollments)
+            )
+            .filter(User.id == target_user_id)
+            .with_for_update()
+            .first()
+        )
+
+        if not target_user:
+            log_audit_failure(
+                event_type="EMAIL_VERIFY_OVERRIDE",
+                target_type="user",
+                actor_id=admin_id,
+                target_id=str(target_user_id),
+                details={"error": "User not found"},
+                ip_address=ip_address
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found."
+            )
+
+        if target_user.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User email is already verified."
+            )
+
+        now = datetime.now(timezone.utc)
+        target_user.email_verified = True
+        db.add(target_user)
+
+        log_audit_event(
+            db=db,
+            event_type="EMAIL_VERIFY_OVERRIDE",
+            target_type="user",
+            actor_id=admin_id,
+            target_id=str(target_user.id),
+            result="success",
+            details={
+                "reason": reason,
+                "verified_at": now.isoformat()
+            },
             ip_address=ip_address
         )
 

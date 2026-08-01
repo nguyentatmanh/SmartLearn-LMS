@@ -11,6 +11,7 @@ from app.schemas.lesson import (
 from app.crud import course as crud_course
 from app.crud import lesson as crud_lesson
 from app.crud import enrollment as crud_enrollment
+from app.services.course_readiness import CourseReadinessService
 
 router = APIRouter()
 
@@ -88,6 +89,9 @@ def delete_chapter(
             detail="Access denied. You do not own the parent course."
         )
         
+    # Check if deleting chapter would strip last chapter from a published course
+    CourseReadinessService.validate_lesson_or_chapter_deletion(db, course, deleting_chapter_id=chapter_id)
+
     # Check dependencies: no lessons inside
     if len(chapter.lessons) > 0:
         raise HTTPException(
@@ -223,6 +227,9 @@ def delete_lesson(
             detail="Access denied. You do not own this course."
         )
         
+    # Check if deleting lesson would strip last lesson from a published course
+    CourseReadinessService.validate_lesson_or_chapter_deletion(db, course, deleting_lesson_id=lesson_id)
+
     # Check dependencies: no materials attached
     if len(lesson.materials) > 0:
         raise HTTPException(

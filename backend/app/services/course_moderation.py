@@ -6,6 +6,7 @@ from app.models.course import Course, CourseStatus, CourseReviewStatus
 from app.models.user import User, UserRole
 from app.services.settings_service import SettingsService
 from app.services.audit_service import log_audit_event, log_audit_failure
+from app.services.course_readiness import CourseReadinessService
 
 
 class CourseModerationService:
@@ -38,6 +39,9 @@ class CourseModerationService:
             log_audit_failure("COURSE_SUBMIT_REVIEW", "course", teacher_id, str(course_id), {"error": "Forbidden"}, ip_address)
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to edit this course.")
 
+        # Enforce content readiness
+        CourseReadinessService.validate_for_review_or_publish(db, course)
+
         course.submitted_revision = course.content_revision
         course.review_status = CourseReviewStatus.PENDING
         course.submitted_for_review_at = datetime.now(timezone.utc)
@@ -60,6 +64,9 @@ class CourseModerationService:
         if not course:
             log_audit_failure("COURSE_APPROVE_REVIEW", "course", admin_id, str(course_id), {"error": "Not found"}, ip_address)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found.")
+
+        # Enforce content readiness
+        CourseReadinessService.validate_for_review_or_publish(db, course)
 
         if course.review_status != CourseReviewStatus.PENDING:
             log_audit_failure("COURSE_APPROVE_REVIEW", "course", admin_id, str(course_id), {"error": "Not pending review"}, ip_address)
@@ -139,8 +146,9 @@ class CourseModerationService:
         if course.status == CourseStatus.ARCHIVED and target_status == CourseStatus.PUBLISHED:
             target_status = CourseStatus.DRAFT
 
-        # Enforce review policy when publishing
+        # Enforce review policy and readiness when publishing
         if target_status == CourseStatus.PUBLISHED:
+            CourseReadinessService.validate_for_review_or_publish(db, course)
             if settings.require_course_review and actor.role != UserRole.ADMIN:
                 if course.review_status != CourseReviewStatus.APPROVED or course.approved_revision != course.content_revision:
                     log_audit_failure("COURSE_PUBLISH", "course", actor.id, str(course_id), {"error": "STALE_OR_MISSING_APPROVAL"}, ip_address)

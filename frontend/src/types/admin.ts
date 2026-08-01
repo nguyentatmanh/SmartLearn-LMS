@@ -1,4 +1,56 @@
+import React from 'react';
+
 export type AdminTab = 'overview' | 'users' | 'teacher-approvals' | 'courses' | 'reports' | 'audit-logs' | 'settings';
+
+// ─── Overview Dashboard Types ──────────────────────────────
+
+/** Single data point for the Activity Analytics chart */
+export interface ActivityDataPoint {
+  date: string;
+  newEnrollments: number;
+  userActivity: number;
+}
+
+/** Period selector options for the Activity Chart */
+export type ChartPeriod = '7d' | '14d' | '30d' | '90d';
+
+/** Props-ready stat card configuration */
+export interface StatCardData {
+  id: string;
+  label: string;
+  value: number;
+  subtitle: string;
+  trend?: {
+    value: number;
+    direction: 'up' | 'down' | 'neutral';
+    label: string;
+  };
+  icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
+  hoverBorderColor: string;
+  sparklineData?: number[];
+  onClick?: () => void;
+}
+
+/** Priority approval item (pending course or teacher) */
+export interface PriorityApprovalItem {
+  id: number;
+  type: 'course' | 'teacher';
+  title: string;
+  submittedBy: string;
+  submittedByAvatar?: string;
+  submittedAt: string;
+}
+
+/** Recent activity log entry for the live feed */
+export interface RecentActivityEntry {
+  id: number;
+  userName: string;
+  userAvatar?: string;
+  action: string;
+  timestamp: string;
+  type: 'update' | 'register' | 'config' | 'review';
+}
 
 export interface StudentProfileSummary {
   enrolled_courses_count: number;
@@ -45,6 +97,11 @@ export interface DiscriminatedUserProfile {
   admin_details?: AdminProfileSummary | null;
 }
 
+export interface AdminVerifierInfo {
+  id: number;
+  full_name: string;
+}
+
 export interface UserDetailResponse {
   id: number;
   email: string;
@@ -58,6 +115,14 @@ export interface UserDetailResponse {
   last_login_at?: string | null;
   phone_number?: string | null;
   date_of_birth?: string | null;
+
+  // Verification metadata
+  email_verified_at?: string | null;
+  email_verification_source?: string | null;
+  email_verified_by_user_id?: number | null;
+  email_verified_by?: AdminVerifierInfo | null;
+  email_verification_note?: string | null;
+
   profile?: DiscriminatedUserProfile | null;
   recent_activities: UserActivityItem[];
 }
@@ -72,6 +137,11 @@ export interface UserItem {
   is_approved: boolean;
   created_at: string;
   updated_at: string;
+
+  // Verification metadata
+  email_verified_at?: string | null;
+  email_verification_source?: string | null;
+
   profile?: {
     full_name?: string;
     phone_number?: string;

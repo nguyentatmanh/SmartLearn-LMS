@@ -112,8 +112,96 @@ export const translations = {
 
     // Final CTA
     finalCTATitle: "Ready to Elevate Your Educational Journey?",
-    finalCTASub: "Join SmartLearn LMS today and experience seamless course management, secure exams, and intelligent AI assistance.",
+    "finalCTASub": "Join SmartLearn LMS today and experience unified course management, role-based access, and transparent progress tracking.",
     finalCTABtn: "Create Your Free Account",
+
+    // ── New Landing Page Keys ──────────────────────────────────
+    // Navigation
+    "landing.navFeatures": "Features",
+    "landing.navSolutions": "Solutions",
+    "landing.navHowItWorks": "How it works",
+    "landing.navSecurity": "Security & Governance",
+
+    // Hero
+    "landing.heroLine1": "Smarter learning.",
+    "landing.heroLine2": "Confident education operations.",
+    "landing.heroSlogan": "Elevating knowledge, shaping the future.",
+    "landing.heroDesc": "A unified platform that helps learners study proactively, instructors organize content efficiently, and institutions operate transparently.",
+    "landing.heroCTAPrimary": "Explore SmartLearn",
+    "landing.heroCTASecondary": "Create free account",
+    "landing.trustSecurity": "Secure accounts",
+    "landing.trustRoles": "Clear permissions",
+    "landing.trustProgress": "Transparent progress",
+
+    // Feature Highlights
+    "landing.featuresEyebrow": "SmartLearn Platform",
+    "landing.featuresHeading": "Everything You Need for Your Learning Journey",
+    "landing.featuresDesc": "From course creation to progress tracking and operational control in one unified workspace.",
+    "landing.feature1Title": "Role-based workspaces",
+    "landing.feature1Desc": "Dedicated experience for learners, instructors, and administrators.",
+    "landing.feature2Title": "Course management",
+    "landing.feature2Desc": "Organize chapters, lessons, materials, and publication workflows.",
+    "landing.feature3Title": "Learning progress",
+    "landing.feature3Desc": "Track learning progress with clear and consistent data.",
+    "landing.feature4Title": "Security & moderation",
+    "landing.feature4Desc": "Account verification, role-based permissions, and centralized content control.",
+
+    // Role Solutions
+    "landing.solutionsTitle": "Designed for every role in education",
+    "landing.solutionsSub": "Each role has a dedicated experience tailored to its responsibilities.",
+    "landing.studentCardTitle": "Students",
+    "landing.studentItem1": "Access enrolled courses and lessons",
+    "landing.studentItem2": "Complete lessons and track progress",
+    "landing.studentItem3": "Review learning history and completion data",
+    "landing.teacherCardTitle": "Teachers",
+    "landing.teacherItem1": "Build and publish structured courses",
+    "landing.teacherItem2": "Manage learning materials and resources",
+    "landing.teacherItem3": "Review teaching analytics and enrollment data",
+    "landing.adminCardTitle": "Administrators",
+    "landing.adminItem1": "Approve teacher registrations and verify credentials",
+    "landing.adminItem2": "Moderate course content and publication status",
+    "landing.adminItem3": "Manage users, roles, and audit system activity",
+
+    // Product Preview
+    "landing.previewTitle": "One platform, three dedicated workspaces",
+    "landing.previewSub": "Each role has an experience designed for its specific responsibilities.",
+    "landing.previewStudent": "Student workspace",
+    "landing.previewTeacher": "Teacher workspace",
+    "landing.previewAdmin": "Admin workspace",
+
+    // How It Works
+    "landing.howTitle": "How SmartLearn works",
+    "landing.howSub": "Three simple steps to start your learning journey.",
+    "landing.step1Title": "Create your account",
+    "landing.step1Desc": "Register and verify your email to access the platform.",
+    "landing.step2Title": "Enter your workspace",
+    "landing.step2Desc": "Each role has a dedicated workspace designed for its tasks.",
+    "landing.step3Title": "Learn, teach, or manage",
+    "landing.step3Desc": "Use real-time data to track progress, manage courses, or govern the platform.",
+
+    // Security & Governance
+    "landing.securityTitle": "Security & Governance",
+    "landing.securitySub": "Built-in controls to protect accounts, enforce policies, and maintain transparency.",
+    "landing.secPrinciple1Title": "Email verification",
+    "landing.secPrinciple1Desc": "Every account is verified through a secure OTP process before gaining full access.",
+    "landing.secPrinciple2Title": "Role-based access control",
+    "landing.secPrinciple2Desc": "Students, teachers, and administrators operate in isolated workspaces with strict permissions.",
+    "landing.secPrinciple3Title": "Teacher approval workflow",
+    "landing.secPrinciple3Desc": "Teacher registrations require administrator review and credential verification before activation.",
+    "landing.secPrinciple4Title": "Audit & moderation",
+    "landing.secPrinciple4Desc": "System-wide activity logging, course moderation, and account governance controls.",
+
+    // CTA
+    "landing.ctaTitle": "Ready to build a better learning experience?",
+    "landing.ctaDesc": "Start with SmartLearn and manage the entire learning journey in one unified space.",
+    "landing.ctaPrimary": "Create a free account",
+    "landing.ctaSecondary": "Sign in",
+
+    // Footer
+    "landing.footerDesc": "A unified learning management platform for learners, instructors, and educational institutions.",
+    "landing.footerProduct": "Product",
+    "landing.footerSolutions": "Solutions",
+    "landing.footerPlatform": "Platform",
 
     // Footer
     footerDesc: "An AI-supported learning and online assessment platform for learners, educators, and institutions.",
@@ -551,6 +639,30 @@ export const translations = {
     "admin.overview.roleTeachers": "Teachers",
     "admin.overview.roleAdmins": "Administrators",
 
+    "admin.overview.activityChart": "Activity Analytics",
+    "admin.overview.newEnrollments": "New Enrollments",
+    "admin.overview.userActivity": "User Activity",
+    "admin.overview.quickManagement": "Quick Management",
+    "admin.overview.createAccount": "Create New Account",
+    "admin.overview.manageRoles": "Manage Roles",
+    "admin.overview.emergencyReports": "View Emergency Reports",
+    "admin.overview.priorityApprovals": "Priority Approvals",
+    "admin.overview.systemStatus": "System Status",
+    "admin.overview.statusStable": "Stable Operation",
+    "admin.overview.statusDescription": "All services are operating normally. No pending applications or flagged courses.",
+    "admin.overview.userDistribution": "User Distribution",
+    "admin.overview.recentLogs": "Recent Activity Logs",
+    "admin.overview.accept": "Accept",
+    "admin.overview.reject": "Reject",
+    "admin.overview.trendUp": "vs last week",
+    "admin.overview.instructor": "Instructor",
+    "admin.overview.period7d": "7 days",
+    "admin.overview.period14d": "14 days",
+    "admin.overview.period30d": "30 days",
+    "admin.overview.period90d": "90 days",
+    "admin.overview.hoursAgo": "{count} hours ago",
+    "admin.overview.daysAgo": "{count} days ago",
+
     "admin.users.searchPlaceholder": "Search by full name or email address...",
     "admin.users.filterAllRoles": "All Roles",
     "admin.users.filterRoleStudent": "Student",
@@ -960,8 +1072,96 @@ export const translations = {
 
     // Final CTA
     finalCTATitle: "Sẵn sàng nâng cao trải nghiệm học tập và giảng dạy?",
-    finalCTASub: "Tham gia SmartLearn LMS ngay hôm nay để trải nghiệm quản lý khóa học bài bản, bài thi an toàn và trợ lý AI thông minh.",
+    "finalCTASub": "Tham gia SmartLearn LMS ngay hôm nay để trải nghiệm quản lý khóa học bài bản, phân quyền theo vai trò và theo dõi tiến độ minh bạch.",
     finalCTABtn: "Tạo tài khoản miễn phí",
+
+    // ── New Landing Page Keys ──────────────────────────────────
+    // Navigation
+    "landing.navFeatures": "Tính năng",
+    "landing.navSolutions": "Giải pháp",
+    "landing.navHowItWorks": "Quy trình",
+    "landing.navSecurity": "Bảo mật & quản trị",
+
+    // Hero
+    "landing.heroLine1": "Học tập thông minh.",
+    "landing.heroLine2": "Vận hành giáo dục vững vàng.",
+    "landing.heroSlogan": "Nâng tầm tri thức, kiến tạo tương lai.",
+    "landing.heroDesc": "Một nền tảng thống nhất giúp học viên học tập chủ động, giảng viên tổ chức nội dung hiệu quả và nhà trường vận hành minh bạch.",
+    "landing.heroCTAPrimary": "Khám phá ngay",
+    "landing.heroCTASecondary": "Tạo tài khoản miễn phí",
+    "landing.trustSecurity": "Bảo mật tài khoản",
+    "landing.trustRoles": "Phân quyền rõ ràng",
+    "landing.trustProgress": "Theo dõi tiến độ minh bạch",
+
+    // Features Section
+    "landing.featuresEyebrow": "Nền tảng SmartLearn",
+    "landing.featuresHeading": "Mọi công cụ cần thiết cho hành trình học tập",
+    "landing.featuresDesc": "Từ xây dựng khóa học đến theo dõi tiến độ và kiểm soát vận hành trong một không gian thống nhất.",
+    "landing.feature1Title": "Không gian theo vai trò",
+    "landing.feature1Desc": "Trải nghiệm riêng cho học viên, giảng viên và quản trị viên.",
+    "landing.feature2Title": "Quản lý khóa học",
+    "landing.feature2Desc": "Tổ chức chương, bài học, tài liệu và quy trình xuất bản.",
+    "landing.feature3Title": "Theo dõi tiến độ",
+    "landing.feature3Desc": "Nắm bắt quá trình học tập bằng dữ liệu rõ ràng và nhất quán.",
+    "landing.feature4Title": "Bảo mật và kiểm duyệt",
+    "landing.feature4Desc": "Xác minh tài khoản, phân quyền và kiểm soát nội dung tập trung.",
+
+    // Role Solutions
+    "landing.solutionsTitle": "Giải pháp chuyên biệt cho từng vai trò",
+    "landing.solutionsSub": "Mỗi vai trò có một trải nghiệm được thiết kế đúng với công việc của mình.",
+    "landing.studentCardTitle": "Học viên",
+    "landing.studentItem1": "Truy cập khóa học và bài học đã đăng ký",
+    "landing.studentItem2": "Hoàn thành bài học và theo dõi tiến độ",
+    "landing.studentItem3": "Xem lại lịch sử học tập và dữ liệu hoàn thành",
+    "landing.teacherCardTitle": "Giảng viên",
+    "landing.teacherItem1": "Xây dựng và xuất bản khóa học bài bản",
+    "landing.teacherItem2": "Quản lý tài liệu và tài nguyên học tập",
+    "landing.teacherItem3": "Xem thống kê giảng dạy và dữ liệu ghi danh",
+    "landing.adminCardTitle": "Quản trị viên",
+    "landing.adminItem1": "Phê duyệt đăng ký giảng viên và xác minh chứng chỉ",
+    "landing.adminItem2": "Kiểm duyệt nội dung khóa học và trạng thái xuất bản",
+    "landing.adminItem3": "Quản lý người dùng, vai trò và kiểm tra hoạt động hệ thống",
+
+    // Product Preview
+    "landing.previewTitle": "Một nền tảng, ba không gian chuyên biệt",
+    "landing.previewSub": "Mỗi vai trò có một trải nghiệm được thiết kế đúng với công việc của mình.",
+    "landing.previewStudent": "Không gian học viên",
+    "landing.previewTeacher": "Không gian giảng viên",
+    "landing.previewAdmin": "Không gian quản trị",
+
+    // How It Works
+    "landing.howTitle": "Cách thức hoạt động của SmartLearn",
+    "landing.howSub": "Ba bước đơn giản để bắt đầu hành trình học tập.",
+    "landing.step1Title": "Tạo tài khoản",
+    "landing.step1Desc": "Đăng ký và xác minh email để truy cập nền tảng.",
+    "landing.step2Title": "Vào không gian làm việc",
+    "landing.step2Desc": "Mỗi vai trò có không gian làm việc riêng, phù hợp với công việc.",
+    "landing.step3Title": "Học, dạy hoặc quản lý",
+    "landing.step3Desc": "Sử dụng dữ liệu thời gian thực để theo dõi tiến độ, quản lý khóa học hoặc vận hành nền tảng.",
+
+    // Security & Governance
+    "landing.securityTitle": "Bảo mật & quản trị",
+    "landing.securitySub": "Các biện pháp kiểm soát tích hợp để bảo vệ tài khoản, thực thi chính sách và duy trì minh bạch.",
+    "landing.secPrinciple1Title": "Xác minh email",
+    "landing.secPrinciple1Desc": "Mọi tài khoản được xác minh qua quy trình OTP an toàn trước khi có quyền truy cập đầy đủ.",
+    "landing.secPrinciple2Title": "Kiểm soát truy cập theo vai trò",
+    "landing.secPrinciple2Desc": "Học viên, giảng viên và quản trị viên hoạt động trong các không gian riêng biệt với quyền hạn chặt chẽ.",
+    "landing.secPrinciple3Title": "Quy trình phê duyệt giảng viên",
+    "landing.secPrinciple3Desc": "Đăng ký giảng viên yêu cầu quản trị viên xem xét và xác minh chứng chỉ trước khi kích hoạt.",
+    "landing.secPrinciple4Title": "Kiểm tra & kiểm duyệt",
+    "landing.secPrinciple4Desc": "Ghi nhật ký hoạt động toàn hệ thống, kiểm duyệt khóa học và kiểm soát quản trị tài khoản.",
+
+    // CTA
+    "landing.ctaTitle": "Sẵn sàng xây dựng trải nghiệm học tập tốt hơn?",
+    "landing.ctaDesc": "Bắt đầu với SmartLearn và quản lý toàn bộ hành trình học tập trong một không gian thống nhất.",
+    "landing.ctaPrimary": "Tạo tài khoản miễn phí",
+    "landing.ctaSecondary": "Đăng nhập",
+
+    // Footer
+    "landing.footerDesc": "Nền tảng quản lý học tập thống nhất dành cho học viên, giảng viên và cơ sở giáo dục.",
+    "landing.footerProduct": "Sản phẩm",
+    "landing.footerSolutions": "Giải pháp",
+    "landing.footerPlatform": "Nền tảng",
 
     // Footer
     footerDesc: "Nền tảng học tập thông minh và đánh giá trực tuyến dành cho học viên, giảng viên và cơ sở giáo dục.",
@@ -1398,6 +1598,30 @@ export const translations = {
     "admin.overview.roleStudents": "Học viên",
     "admin.overview.roleTeachers": "Giảng viên",
     "admin.overview.roleAdmins": "Quản trị viên",
+
+    "admin.overview.activityChart": "Phân tích hoạt động",
+    "admin.overview.newEnrollments": "Đăng ký mới",
+    "admin.overview.userActivity": "Hoạt động người dùng",
+    "admin.overview.quickManagement": "Widget Quản lý nhanh",
+    "admin.overview.createAccount": "Tạo tài khoản mới",
+    "admin.overview.manageRoles": "Quản lý vai trò",
+    "admin.overview.emergencyReports": "Xem báo cáo khẩn cấp",
+    "admin.overview.priorityApprovals": "Phê duyệt ưu tiên",
+    "admin.overview.systemStatus": "Trạng thái hệ thống",
+    "admin.overview.statusStable": "Hoạt động ổn định",
+    "admin.overview.statusDescription": "Tất cả dịch vụ hệ thống đang hoạt động bình thường, không có hồ sơ hoặc khóa học chờ xử lý.",
+    "admin.overview.userDistribution": "Phân loại người dùng",
+    "admin.overview.recentLogs": "Nhật ký hoạt động gần đây",
+    "admin.overview.accept": "Chấp thuận",
+    "admin.overview.reject": "Từ chối",
+    "admin.overview.trendUp": "so với tuần trước",
+    "admin.overview.instructor": "Giảng viên",
+    "admin.overview.period7d": "7 ngày",
+    "admin.overview.period14d": "14 ngày",
+    "admin.overview.period30d": "30 ngày",
+    "admin.overview.period90d": "90 ngày",
+    "admin.overview.hoursAgo": "{count} giờ trước",
+    "admin.overview.daysAgo": "{count} ngày trước",
 
     "admin.users.searchPlaceholder": "Tìm kiếm theo họ tên hoặc địa chỉ email...",
     "admin.users.filterAllRoles": "Tất cả vai trò",

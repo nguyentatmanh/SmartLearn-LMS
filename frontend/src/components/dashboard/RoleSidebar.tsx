@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePreference } from '@/context/PreferenceContext';
 import { useSidebar } from '@/context/SidebarContext';
 import { cn } from '@/lib/utils';
-import { TEACHER_NAV_ICON_STYLES } from '@/components/teacher/TeacherSidebar';
+import { playNavClickSound } from '@/lib/sound';
 import {
   GraduationCap, LogOut, Sun, Moon, Globe,
   UserCheck, Clock, ShieldAlert, X,
@@ -15,11 +15,10 @@ import {
 } from 'lucide-react';
 
 export interface NavItemIconStyle {
-  icon: string;
-  tileBg: string;
-  tileBorder: string;
-  hoverBg: string;
-  activeBg: string;
+  activeTile: string;
+  inactiveTile: string;
+  activeIcon: string;
+  inactiveIcon: string;
 }
 
 export interface NavItemConfig {
@@ -43,6 +42,76 @@ export interface RoleSidebarProps {
   hideFooterControls?: boolean;
 }
 
+/** Unified color palette for all navigation item tiles & icons */
+export const GLOBAL_NAV_ICON_STYLES: Record<string, NavItemIconStyle> = {
+  overview: {
+    activeTile: 'bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-500/25',
+    inactiveTile: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 hover:bg-indigo-500/20 dark:hover:bg-indigo-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-indigo-600 dark:text-indigo-400',
+  },
+  dashboard: {
+    activeTile: 'bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-500/25',
+    inactiveTile: 'bg-indigo-500/10 dark:bg-indigo-500/15 border-indigo-500/20 hover:bg-indigo-500/20 dark:hover:bg-indigo-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-indigo-600 dark:text-indigo-400',
+  },
+  users: {
+    activeTile: 'bg-sky-600 border-sky-600 shadow-md shadow-sky-500/25',
+    inactiveTile: 'bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/20 hover:bg-sky-500/20 dark:hover:bg-sky-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-sky-600 dark:text-sky-400',
+  },
+  students: {
+    activeTile: 'bg-sky-600 border-sky-600 shadow-md shadow-sky-500/25',
+    inactiveTile: 'bg-sky-500/10 dark:bg-sky-500/15 border-sky-500/20 hover:bg-sky-500/20 dark:hover:bg-sky-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-sky-600 dark:text-sky-400',
+  },
+  'teacher-approvals': {
+    activeTile: 'bg-amber-500 border-amber-500 shadow-md shadow-amber-500/25',
+    inactiveTile: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 hover:bg-amber-500/20 dark:hover:bg-amber-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-amber-600 dark:text-amber-400',
+  },
+  courses: {
+    activeTile: 'bg-emerald-600 border-emerald-600 shadow-md shadow-emerald-500/25',
+    inactiveTile: 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/20 hover:bg-emerald-500/20 dark:hover:bg-emerald-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-emerald-600 dark:text-emerald-400',
+  },
+  reports: {
+    activeTile: 'bg-purple-600 border-purple-600 shadow-md shadow-purple-500/25',
+    inactiveTile: 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/20 hover:bg-purple-500/20 dark:hover:bg-purple-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-purple-600 dark:text-purple-400',
+  },
+  analytics: {
+    activeTile: 'bg-purple-600 border-purple-600 shadow-md shadow-purple-500/25',
+    inactiveTile: 'bg-purple-500/10 dark:bg-purple-500/15 border-purple-500/20 hover:bg-purple-500/20 dark:hover:bg-purple-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-purple-600 dark:text-purple-400',
+  },
+  'audit-logs': {
+    activeTile: 'bg-cyan-600 border-cyan-600 shadow-md shadow-cyan-500/25',
+    inactiveTile: 'bg-cyan-500/10 dark:bg-cyan-500/15 border-cyan-500/20 hover:bg-cyan-500/20 dark:hover:bg-cyan-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-cyan-600 dark:text-cyan-400',
+  },
+  materials: {
+    activeTile: 'bg-amber-600 border-amber-600 shadow-md shadow-amber-500/25',
+    inactiveTile: 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/20 hover:bg-amber-500/20 dark:hover:bg-amber-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-amber-600 dark:text-amber-400',
+  },
+  settings: {
+    activeTile: 'bg-pink-600 border-pink-600 shadow-md shadow-pink-500/25',
+    inactiveTile: 'bg-pink-500/10 dark:bg-pink-500/15 border-pink-500/20 hover:bg-pink-500/20 dark:hover:bg-pink-500/25',
+    activeIcon: 'text-white',
+    inactiveIcon: 'text-pink-600 dark:text-pink-400',
+  },
+};
+
 export function SidebarToggle({ className = '' }: { className?: string }) {
   const { isCollapsed, toggleCollapsed } = useSidebar();
   const { t } = usePreference();
@@ -53,16 +122,19 @@ export function SidebarToggle({ className = '' }: { className?: string }) {
 
   return (
     <button
-      onClick={toggleCollapsed}
-      className={`p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-all duration-150 active:scale-[0.98] cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center ${className}`}
+      onClick={() => {
+        playNavClickSound();
+        toggleCollapsed();
+      }}
+      className={`p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-all duration-150 active:scale-95 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center group ${className}`}
       aria-label={label}
       aria-expanded={!isCollapsed}
       title={label}
     >
       {isCollapsed ? (
-        <PanelLeftOpen className="h-5 w-5" aria-hidden="true" />
+        <PanelLeftOpen className="h-5 w-5 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-200" aria-hidden="true" />
       ) : (
-        <PanelLeftClose className="h-5 w-5" aria-hidden="true" />
+        <PanelLeftClose className="h-5 w-5 group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-200" aria-hidden="true" />
       )}
     </button>
   );
@@ -106,7 +178,6 @@ export function RoleSidebar({
   const pathname = usePathname();
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // Accessible focus trap for mobile drawer
   useEffect(() => {
     if (isOpenMobile && drawerRef.current) {
       drawerRef.current.focus();
@@ -139,11 +210,14 @@ export function RoleSidebar({
           <div className="flex items-center justify-between px-1.5 pt-1 min-h-[44px]">
             <Link
               href="/"
-              onClick={closeMobile}
+              onClick={() => {
+                playNavClickSound();
+                closeMobile();
+              }}
               className="flex items-center gap-2.5 overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
               title="SmartLearn LMS"
             >
-              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-150">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:rotate-6 transition-all duration-200 shadow-xs">
                 <GraduationCap className="h-5 w-5 text-primary" aria-hidden="true" />
               </div>
               {!collapsed && (
@@ -161,11 +235,14 @@ export function RoleSidebar({
             {/* Mobile close button */}
             {isMobileView ? (
               <button
-                onClick={closeMobile}
-                className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+                onClick={() => {
+                  playNavClickSound();
+                  closeMobile();
+                }}
+                className="p-2.5 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center group"
                 aria-label={t('sidebarCloseNav' as any) || 'Close navigation menu'}
               >
-                <X className="h-5 w-5" aria-hidden="true" />
+                <X className="h-5 w-5 group-hover:scale-110 group-hover:rotate-90 transition-transform duration-200" aria-hidden="true" />
               </button>
             ) : (
               <SidebarToggle className="hidden lg:flex" />
@@ -191,49 +268,46 @@ export function RoleSidebar({
                 : false;
 
               const Icon = item.icon || GraduationCap;
-              const style = item.id ? TEACHER_NAV_ICON_STYLES[item.id] : undefined;
+              const style = item.iconStyle || GLOBAL_NAV_ICON_STYLES[item.id] || GLOBAL_NAV_ICON_STYLES.overview;
 
               const content = (
                 <div
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 relative group cursor-pointer min-h-[48px]",
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 relative group cursor-pointer min-h-[48px]",
                     active
                       ? "bg-primary/10 text-primary font-bold shadow-2xs dark:bg-primary/20 border-l-2 border-primary"
-                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground active:scale-[0.98]",
+                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground active:scale-[0.97]",
                     collapsed ? "justify-center px-2" : ""
                   )}
                 >
+                  {/* Icon Tile with Micro-Animation on Hover */}
                   <span
                     className={cn(
-                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-150 group-hover:scale-[1.05]",
-                      style
-                        ? (active ? style.activeTile : style.inactiveTile)
-                        : (active ? 'bg-primary border-primary text-primary-foreground' : 'bg-muted/60 border-border text-muted-foreground')
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-all duration-200 group-hover:scale-115 group-hover:rotate-6 group-hover:shadow-md",
+                      active ? style.activeTile : style.inactiveTile
                     )}
                   >
                     <Icon
                       aria-hidden="true"
-                      strokeWidth={1.9}
+                      strokeWidth={2}
                       className={cn(
-                        "h-[18px] w-[18px] shrink-0 fill-none",
-                        style
-                          ? (active ? style.activeIcon : style.inactiveIcon)
-                          : (active ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-foreground')
+                        "h-[18px] w-[18px] shrink-0 fill-none transition-transform duration-200 group-hover:scale-110",
+                        active ? style.activeIcon : style.inactiveIcon
                       )}
                     />
                   </span>
 
-                  {!collapsed && <span className="truncate">{labelText}</span>}
+                  {!collapsed && <span className="truncate transition-colors duration-150">{labelText}</span>}
 
                   {item.badge && item.badge > 0 ? (
                     <span
                       className={cn(
-                        "px-2 py-0.5 text-[10px] font-bold rounded-full transition-all shrink-0",
+                        "px-2 py-0.5 text-[10px] font-bold rounded-full transition-all shrink-0 animate-pulse",
                         collapsed
                           ? "absolute top-1 right-1 px-1.5 py-0.2 text-[9px] bg-amber-500 text-white"
                           : active
-                          ? "bg-amber-500/20 text-amber-700 dark:text-amber-300"
-                          : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                          ? "bg-amber-500 text-white"
+                          : "bg-amber-500/20 text-amber-700 dark:text-amber-300"
                       )}
                     >
                       {item.badge}
@@ -247,7 +321,10 @@ export function RoleSidebar({
                   <SidebarTooltip key={item.id} text={labelText} show={collapsed}>
                     <Link
                       href={item.href}
-                      onClick={closeMobile}
+                      onClick={() => {
+                        playNavClickSound();
+                        closeMobile();
+                      }}
                       aria-current={active ? 'page' : undefined}
                       aria-label={labelText}
                       className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
@@ -263,6 +340,7 @@ export function RoleSidebar({
                   <button
                     type="button"
                     onClick={() => {
+                      playNavClickSound();
                       if (item.onClick) item.onClick();
                       closeMobile();
                     }}
@@ -288,32 +366,42 @@ export function RoleSidebar({
                 {/* Controls row: Theme & Language */}
                 <div className={`flex items-center gap-1 p-1 bg-muted/40 rounded-xl ${collapsed ? 'flex-col' : 'justify-between'}`}>
                   <button
-                    onClick={toggleTheme}
-                    className="p-2 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-colors flex justify-center flex-1 w-full cursor-pointer min-h-[44px] items-center"
+                    onClick={() => {
+                      playNavClickSound();
+                      toggleTheme();
+                    }}
+                    className="p-2 rounded-lg hover:bg-card text-muted-foreground hover:text-foreground transition-all duration-150 flex justify-center flex-1 w-full cursor-pointer min-h-[44px] items-center group active:scale-95"
                     aria-label={t('common.toggleTheme')}
                     title={t('common.toggleTheme')}
                   >
                     {isMounted ? (
-                      theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-indigo-500" />
+                      theme === 'dark' ? (
+                        <Sun className="h-4 w-4 text-amber-400 group-hover:scale-125 group-hover:rotate-45 transition-transform duration-200" />
+                      ) : (
+                        <Moon className="h-4 w-4 text-indigo-500 group-hover:scale-125 group-hover:-rotate-12 transition-transform duration-200" />
+                      )
                     ) : (
                       <span className="h-4 w-4 animate-pulse bg-muted-foreground/20 rounded-full" />
                     )}
                   </button>
                   {!collapsed && <div className="h-4 w-[1px] bg-border/40 shrink-0" />}
                   <button
-                    onClick={() => setLanguage(language === 'en' ? 'vi' : 'en')}
-                    className="p-2 rounded-lg hover:bg-card text-xs font-bold text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1 flex-1 w-full cursor-pointer min-h-[44px]"
+                    onClick={() => {
+                      playNavClickSound();
+                      setLanguage(language === 'en' ? 'vi' : 'en');
+                    }}
+                    className="p-2 rounded-lg hover:bg-card text-xs font-bold text-muted-foreground hover:text-foreground transition-all duration-150 flex items-center justify-center gap-1 flex-1 w-full cursor-pointer min-h-[44px] group active:scale-95"
                     aria-label={t('common.changeLanguage')}
                     title={t('common.changeLanguage')}
                   >
-                    <Globe className="h-3.5 w-3.5" />
+                    <Globe className="h-3.5 w-3.5 group-hover:scale-125 group-hover:rotate-180 transition-transform duration-300" />
                     <span>{isMounted ? (language === 'en' ? 'EN' : 'VI') : 'EN'}</span>
                   </button>
                 </div>
 
                 {/* User Profile Card */}
                 <div className={`flex items-center gap-2.5 p-2 rounded-xl bg-muted/30 ${collapsed ? 'justify-center p-1.5' : ''}`}>
-                  <div className="h-8 w-8 bg-primary/10 text-primary font-bold rounded-lg flex items-center justify-center uppercase shrink-0 text-xs">
+                  <div className="h-8 w-8 bg-primary/10 text-primary font-bold rounded-lg flex items-center justify-center uppercase shrink-0 text-xs shadow-xs">
                     {displayName.charAt(0)}
                   </div>
                   {!collapsed && (
@@ -347,12 +435,15 @@ export function RoleSidebar({
 
                 {/* Logout button */}
                 <button
-                  onClick={logout}
-                  className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-rose-500/10 hover:text-rose-600 text-xs font-semibold transition-all duration-150 text-muted-foreground cursor-pointer min-h-[44px] ${collapsed ? 'px-2' : ''}`}
+                  onClick={() => {
+                    playNavClickSound();
+                    logout();
+                  }}
+                  className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-rose-500/10 hover:text-rose-600 text-xs font-semibold transition-all duration-150 text-muted-foreground cursor-pointer min-h-[44px] group active:scale-95 ${collapsed ? 'px-2' : ''}`}
                   aria-label={t('logout')}
                   title={t('logout')}
                 >
-                  <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <LogOut className="h-4 w-4 shrink-0 group-hover:scale-125 group-hover:-translate-x-0.5 transition-transform duration-200" aria-hidden="true" />
                   {!collapsed && <span>{t('logout')}</span>}
                 </button>
               </>
@@ -377,13 +468,11 @@ export function RoleSidebar({
       {/* Mobile Drawer Off-Canvas */}
       {isOpenMobile && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-200"
             onClick={closeMobile}
             aria-hidden="true"
           />
-          {/* Drawer Panel */}
           <div
             ref={drawerRef}
             tabIndex={-1}
@@ -416,9 +505,6 @@ export function DashboardShell({
         className={`flex-1 flex flex-col transition-all duration-200 ease-out lg:pl-${
           isCollapsed ? '20' : '64'
         }`}
-        style={{
-          paddingLeft: undefined
-        }}
       >
         <div
           className={`flex-1 flex flex-col min-w-0 transition-all duration-200 ease-out ${

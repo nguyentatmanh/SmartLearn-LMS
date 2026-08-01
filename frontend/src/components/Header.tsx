@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { usePreference } from '@/context/PreferenceContext';
-import { GraduationCap, Sun, Moon, Languages, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
+import { Sun, Moon, Languages, LogOut, Menu, X, LayoutDashboard } from 'lucide-react';
+import SmartLearnLogo from '@/components/brand/SmartLearnLogo';
 
 export default function AppHeader() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -56,13 +57,10 @@ export default function AppHeader() {
         {/* Brand Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring px-1 py-0.5"
+          className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring py-0.5"
           aria-label="SmartLearn LMS Home"
         >
-          <GraduationCap className="h-6 w-6 text-primary shrink-0" aria-hidden="true" />
-          <span className="text-lg font-bold tracking-tight text-foreground">
-            SmartLearn <span className="text-primary">LMS</span>
-          </span>
+          <SmartLearnLogo variant="compact" markSize={32} />
         </Link>
 
         {/* Section Navigation Links — desktop only, homepage only */}

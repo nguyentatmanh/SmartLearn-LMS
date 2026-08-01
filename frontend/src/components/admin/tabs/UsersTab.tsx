@@ -5,12 +5,13 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   Search, Shield, UserX, UserCheck, Eye, RefreshCw, AlertTriangle,
   User as UserIcon, Mail, Calendar, Clock, ShieldCheck, CheckCircle2,
-  XCircle, Award, BookOpen, GraduationCap, FileText, Activity
+  XCircle, Award, BookOpen, GraduationCap, FileText, Activity, ShieldAlert
 } from 'lucide-react';
 import api from '@/lib/api';
 import { UserItem, UserDetailResponse } from '@/types/admin';
 import { AdminDetailDrawer } from '../AdminDetailDrawer';
 import { AdminConfirmModal } from '../AdminConfirmModal';
+import { VerifyEmailModal } from '../modals/VerifyEmailModal';
 import { usePreference } from '@/context/PreferenceContext';
 
 export const UsersTab: React.FC = () => {
@@ -21,12 +22,14 @@ export const UsersTab: React.FC = () => {
 
   const [users, setUsers] = useState<UserItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [unverifiedCount, setUnverifiedCount] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
+  const [verificationFilter, setVerificationFilter] = useState('');
 
   // Drawer & Detail state
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
@@ -61,6 +64,11 @@ export const UsersTab: React.FC = () => {
   const [targetRole, setTargetRole] = useState<'student' | 'teacher' | 'admin'>('student');
   const [isActiveModalOpen, setIsActiveModalOpen] = useState(false);
   const [targetActiveState, setTargetActiveState] = useState(false);
+
+  // Manual Verify Email Modal state
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [verifyTargetUser, setVerifyTargetUser] = useState<UserItem | null>(null);
+
   const [actionLoading, setActionLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -74,10 +82,14 @@ export const UsersTab: React.FC = () => {
       if (search.trim()) params.q = search.trim();
       if (roleFilter) params.role = roleFilter;
       if (activeFilter) params.is_active = activeFilter === 'true';
+      if (verificationFilter) params.email_verified = verificationFilter === 'true';
 
-      const res = await api.get<{ items: UserItem[]; total: number; total_pages: number }>('/admin/users', { params });
+      const res = await api.get<{ items: UserItem[]; total: number; unverified_count?: number; total_pages: number }>('/admin/users', { params });
       setUsers(res.data.items);
       setTotal(res.data.total);
+      if (typeof res.data.unverified_count === 'number') {
+        setUnverifiedCount(res.data.unverified_count);
+      }
       setTotalPages(res.data.total_pages);
     } catch (err: unknown) {
       console.error('Failed to fetch users:', err);
@@ -88,7 +100,7 @@ export const UsersTab: React.FC = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [page, roleFilter, activeFilter]);
+  }, [page, roleFilter, activeFilter, verificationFilter]);
 
   // Handle URL searchParam userId integration
   const userIdParam = searchParams.get('userId');
@@ -97,6 +109,24 @@ export const UsersTab: React.FC = () => {
       const parsedId = parseInt(userIdParam, 10);
       if (!isNaN(parsedId)) {
         setIsDrawerOpen(true);
+        if (!selectedUser || selectedUser.id !== parsedId) {
+          const found = users.find((u) => u.id === parsedId);
+          if (found) {
+            setSelectedUser(found);
+          } else {
+            setSelectedUser({
+              id: parsedId,
+              email: '',
+              full_name: `User #${parsedId}`,
+              role: 'student',
+              is_active: true,
+              email_verified: false,
+              is_approved: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
+        }
         const cached = getCachedDetail(parsedId);
         if (cached) {
           setUserDetail(cached);
@@ -109,7 +139,7 @@ export const UsersTab: React.FC = () => {
       setIsDrawerOpen(false);
       setUserDetail(null);
     }
-  }, [userIdParam]);
+  }, [userIdParam, users]);
 
   const fetchUserDetail = async (userId: number, forceRefresh = false) => {
     if (!forceRefresh) {
@@ -310,10 +340,73 @@ export const UsersTab: React.FC = () => {
 
   const currentDisplayUser = userDetail || selectedUser;
 
+  // Deterministic Avatar Color helper based on user ID
+  const getAvatarBg = (id: number) => {
+    const colors = [
+      'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20',
+      'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
+      'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20',
+      'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20',
+      'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+    ];
+    return colors[id % colors.length];
+  };
+
+  const handleOpenVerifyModal = (u: UserItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setVerifyTargetUser(u);
+    setIsVerifyModalOpen(true);
+  };
+
+  const handleConfirmVerifyEmail = async (reason: string) => {
+    if (!verifyTargetUser) return;
+    try {
+      const res = await api.post<UserDetailResponse>(`/admin/users/${verifyTargetUser.id}/verify-email`, { reason });
+      invalidateCacheEntry(verifyTargetUser.id);
+      fetchUsers();
+      if (selectedUser && selectedUser.id === verifyTargetUser.id) {
+        setUserDetail(res.data);
+      }
+    } catch (err: unknown) {
+      throw new Error(formatError(err));
+    }
+  };
+
+  const hasActiveFilters = Boolean(search.trim() || roleFilter || activeFilter || verificationFilter);
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setRoleFilter('');
+    setActiveFilter('');
+    setVerificationFilter('');
+    setPage(1);
+    fetchUsers();
+  };
+
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 fade-in">
-      {/* Search & Filter Header */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card p-4 border border-border/50 rounded-xl shadow-2xs">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto fade-in">
+      {/* 1. Page Header */}
+      <div className="pb-4 border-b border-border/40 space-y-1">
+        <nav className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+          <span>{t('admin.workspaceTitle')}</span>
+          <span>/</span>
+          <span className="text-foreground font-medium">{t('admin.users.headerTitle')}</span>
+        </nav>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            {t('admin.users.headerTitle')}
+          </h1>
+          <div className="text-xs text-muted-foreground font-medium">
+            <span>{t('admin.users.showingCount')} <strong className="text-foreground">{total}</strong> {t('admin.users.filterRoleUser')}</span>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t('admin.users.headerDesc')}
+        </p>
+      </div>
+
+      {/* 2. Search & Filter Toolbar */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-card p-4 border border-border/50 rounded-xl shadow-2xs">
         <form onSubmit={handleSearchSubmit} className="relative flex-1">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -325,7 +418,7 @@ export const UsersTab: React.FC = () => {
           />
         </form>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <select
             value={roleFilter}
             onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
@@ -346,15 +439,54 @@ export const UsersTab: React.FC = () => {
             <option value="true">{t('admin.users.filterActive')}</option>
             <option value="false">{t('admin.users.filterInactive')}</option>
           </select>
+
+          <select
+            value={verificationFilter}
+            onChange={(e) => { setVerificationFilter(e.target.value); setPage(1); }}
+            className="bg-muted/30 border border-border/50 text-foreground text-xs rounded-xl px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px] cursor-pointer"
+          >
+            <option value="">{t('admin.users.filterAllVerification')}</option>
+            <option value="true">{t('admin.users.filterVerified')}</option>
+            <option value="false">{t('admin.users.filterUnverified')}</option>
+          </select>
+
+          {unverifiedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setVerificationFilter(verificationFilter === 'false' ? '' : 'false');
+                setPage(1);
+              }}
+              className={`px-3 py-2 min-h-[44px] text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer border ${
+                verificationFilter === 'false'
+                  ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
+                  : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/20'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>{t('admin.users.quickFilterUnverified').replace('{count}', unverifiedCount.toString())}</span>
+            </button>
+          )}
+
+          {hasActiveFilters && (
+            <button
+              onClick={handleClearFilters}
+              className="px-3 py-2 min-h-[44px] text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+              title={t('admin.users.clearFilters')}
+            >
+              <XCircle className="w-4 h-4" />
+              <span>{t('admin.users.clearFilters')}</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* 3. Users Table with Sticky Header */}
       <div className="bg-card border border-border/50 rounded-xl shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <table className="w-full text-left text-xs text-foreground border-collapse">
-            <thead>
-              <tr className="bg-muted/40 border-b border-border/40 text-muted-foreground font-semibold text-xs">
+            <thead className="sticky top-0 bg-muted/95 backdrop-blur-xs border-b border-border/40 text-muted-foreground font-semibold text-xs z-10">
+              <tr>
                 <th className="p-4">{t('admin.users.thUser')}</th>
                 <th className="p-4">{t('admin.users.thRole')}</th>
                 <th className="p-4">{t('admin.users.thStatus')}</th>
@@ -377,13 +509,23 @@ export const UsersTab: React.FC = () => {
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                    {t('admin.users.noUsersFound')}
+                  <td colSpan={6} className="p-12 text-center text-muted-foreground space-y-2">
+                    <UserX className="w-8 h-8 mx-auto text-muted-foreground/40" />
+                    <p className="font-semibold text-foreground">{t('admin.users.noUsersFound')}</p>
+                    {hasActiveFilters && (
+                      <button
+                        onClick={handleClearFilters}
+                        className="text-xs text-primary font-semibold hover:underline cursor-pointer"
+                      >
+                        {t('admin.users.clearFilters')}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
                 users.map((u) => {
                   const displayName = getDisplayName(u);
+                  const avatarStyle = getAvatarBg(u.id);
                   return (
                     <tr
                       key={u.id}
@@ -394,7 +536,7 @@ export const UsersTab: React.FC = () => {
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center flex-shrink-0">
+                          <div className={`w-8 h-8 rounded-xl font-bold text-xs flex items-center justify-center shrink-0 border ${avatarStyle}`}>
                             {getInitials(displayName)}
                           </div>
                           <div>
@@ -406,7 +548,7 @@ export const UsersTab: React.FC = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold ${
                           u.role === 'admin'
                             ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
                             : u.role === 'teacher'
@@ -417,54 +559,79 @@ export const UsersTab: React.FC = () => {
                         </span>
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs font-semibold ${
                           u.is_active
                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                             : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${u.is_active ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                          {u.is_active ? t('admin.users.badgeActive') : t('admin.users.badgeInactive')}
+                          {u.is_active ? t('admin.users.filterActive') : t('admin.users.filterInactive')}
                         </span>
                       </td>
                       <td className="p-4">
-                        <span className={`inline-flex items-center gap-1 text-[11px] ${
-                          u.email_verified ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'
-                        }`}>
-                          {u.email_verified ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                          {u.email_verified ? t('admin.users.badgeVerified') : t('admin.users.badgeUnverified')}
-                        </span>
+                        {u.email_verified ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {t('admin.users.badgeVerified')}
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                              <XCircle className="w-3.5 h-3.5 text-amber-500" />
+                              {t('admin.users.badgeUnverified')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenVerifyModal(u, e)}
+                              className="px-2 py-1 text-[11px] font-semibold rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 transition-all cursor-pointer min-h-[32px]"
+                              title={t('admin.users.modalVerifyTitle')}
+                            >
+                              {t('admin.users.btnVerifyEmail')}
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-muted-foreground text-[11px]">
                         {formatDate(u.created_at)}
                       </td>
                       <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => handleOpenUserDetail(u)}
                             onFocus={() => handlePrefetchUser(u.id)}
-                            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors"
+                            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-colors cursor-pointer"
                             title={t('admin.users.tooltipViewDetails')}
                             aria-label={t('admin.users.tooltipViewDetails')}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
+                          {!u.email_verified && (
+                            <button
+                              onClick={(e) => handleOpenVerifyModal(u, e)}
+                              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-amber-600 hover:bg-amber-500/10 rounded-xl transition-colors cursor-pointer"
+                              title={t('admin.users.modalVerifyTitle')}
+                              aria-label={t('admin.users.modalVerifyTitle')}
+                            >
+                              <ShieldAlert className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={(e) => handleOpenRoleModal(u, e)}
-                            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
-                            title={t('admin.users.tooltipChangeRole')}
-                            aria-label={t('admin.users.tooltipChangeRole')}
+                            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
+                            title={t('admin.users.btnChangeRole')}
+                            aria-label={t('admin.users.btnChangeRole')}
                           >
                             <Shield className="w-4 h-4" />
                           </button>
                           <button
                             onClick={(e) => handleOpenActiveModal(u, e)}
-                            className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl transition-colors ${
+                            className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl transition-colors cursor-pointer ${
                               u.is_active
-                                ? 'text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10'
-                                : 'text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10'
+                                ? 'text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10'
+                                : 'text-muted-foreground hover:text-emerald-600 hover:bg-emerald-500/10'
                             }`}
-                            title={t('admin.users.tooltipToggleStatus')}
-                            aria-label={t('admin.users.tooltipToggleStatus')}
+                            title={u.is_active ? t('admin.users.btnDeactivate') : t('admin.users.btnActivate')}
+                            aria-label={u.is_active ? t('admin.users.btnDeactivate') : t('admin.users.btnActivate')}
                           >
                             {u.is_active ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                           </button>
@@ -478,26 +645,65 @@ export const UsersTab: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* 4. Full Pagination Controls */}
         {totalPages > 1 && (
-          <div className="p-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground bg-muted/20">
-            <div>
-              Total {formatNumber(total)} users (Page {page} of {totalPages})
+          <div className="p-4 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-muted/20">
+            <div className="text-muted-foreground">
+              {t('admin.users.paginationText').replace('{page}', page.toString()).replace('{totalPages}', totalPages.toString()).replace('{total}', total.toString())}
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-1">
               <button
                 disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
-                className="px-3 py-1.5 border border-border rounded-lg hover:bg-muted disabled:opacity-40 min-h-[44px]"
+                onClick={() => setPage(1)}
+                className="px-2.5 py-1.5 rounded-lg border border-border/50 bg-card hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors min-h-[36px] cursor-pointer"
               >
-                Previous
+                « First
+              </button>
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 rounded-lg border border-border/50 bg-card hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors min-h-[36px] cursor-pointer"
+              >
+                ‹ Prev
+              </button>
+
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pNum = page;
+                if (page <= 3) pNum = i + 1;
+                else if (page >= totalPages - 2) pNum = totalPages - 4 + i;
+                else pNum = page - 2 + i;
+
+                if (pNum < 1 || pNum > totalPages) return null;
+
+                return (
+                  <button
+                    key={pNum}
+                    onClick={() => setPage(pNum)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors min-h-[36px] min-w-[36px] cursor-pointer ${
+                      page === pNum
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-card border-border/50 hover:bg-muted text-foreground'
+                    }`}
+                  >
+                    {pNum}
+                  </button>
+                );
+              })}
+
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3 py-1.5 rounded-lg border border-border/50 bg-card hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors min-h-[36px] cursor-pointer"
+              >
+                Next ›
               </button>
               <button
                 disabled={page >= totalPages}
-                onClick={() => setPage(page + 1)}
-                className="px-3 py-1.5 border border-border rounded-lg hover:bg-muted disabled:opacity-40 min-h-[44px]"
+                onClick={() => setPage(totalPages)}
+                className="px-2.5 py-1.5 rounded-lg border border-border/50 bg-card hover:bg-muted text-foreground disabled:opacity-40 disabled:pointer-events-none transition-colors min-h-[36px] cursor-pointer"
               >
-                Next
+                Last »
               </button>
             </div>
           </div>
@@ -555,14 +761,14 @@ export const UsersTab: React.FC = () => {
             <AlertTriangle className="w-8 h-8 text-rose-500 mx-auto" />
             <h3 className="font-bold text-foreground text-sm">
               {detailError.status === 404
-                ? t('admin.users.detailNotFoundTitle')
-                : t('admin.users.detailNotFoundDesc', { id: selectedUser?.id || '' })}
+                ? t('admin.users.detailNotFoundDesc', { id: String(selectedUser?.id || userIdParam || '') })
+                : t('admin.users.detailNotFoundTitle')}
             </h3>
             <p className="text-xs text-muted-foreground">{detailError.message}</p>
-            {selectedUser && (
+            {(selectedUser || userIdParam) && (
               <button
-                onClick={() => fetchUserDetail(selectedUser.id, true)}
-                className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors inline-flex items-center gap-2 min-h-[44px]"
+                onClick={() => fetchUserDetail(selectedUser?.id || parseInt(userIdParam || '0', 10), true)}
+                className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-xl hover:bg-primary/90 transition-colors inline-flex items-center gap-2 min-h-[44px] cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>{t('admin.users.detailRetry')}</span>
@@ -709,6 +915,65 @@ export const UsersTab: React.FC = () => {
                         {userDetail?.last_login_at ? formatDate(userDetail.last_login_at) : t('admin.users.detailNeverLoggedIn')}
                       </p>
                     </div>
+                  </div>
+                </div>
+
+                {/* Email Verification Section */}
+                <div className="space-y-3 p-4 bg-muted/20 rounded-2xl border border-border">
+                  <div className="font-bold text-foreground text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-amber-500" />
+                      <span>{t('admin.users.drawerVerificationSection')}</span>
+                    </div>
+                    {!currentDisplayUser.email_verified && (
+                      <button
+                        onClick={() => handleOpenVerifyModal(currentDisplayUser as UserItem)}
+                        className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/20 text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer min-h-[36px]"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{t('admin.users.btnVerifyEmail')}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-bold">{t('admin.users.drawerVerificationStatus')}</span>
+                      <p className={`font-medium mt-0.5 ${currentDisplayUser.email_verified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {currentDisplayUser.email_verified ? t('admin.users.badgeVerified') : t('admin.users.badgeUnverified')}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-bold">{t('admin.users.drawerVerificationSource')}</span>
+                      <p className="font-medium text-foreground mt-0.5">
+                        {(() => {
+                          const src = userDetail?.email_verification_source || currentDisplayUser.email_verification_source;
+                          if (src === 'otp') return t('admin.users.sourceOtp');
+                          if (src === 'admin_override') {
+                            if (userDetail?.email_verified_by?.full_name) {
+                              return t('admin.users.sourceAdminOverride').replace('{name}', userDetail.email_verified_by.full_name);
+                            }
+                            return t('admin.users.sourceFormerAdmin');
+                          }
+                          if (currentDisplayUser.email_verified) return t('admin.users.sourceUnknown');
+                          return '-';
+                        })()}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground text-[10px] uppercase font-bold">{t('admin.users.drawerVerificationDate')}</span>
+                      <p className="font-medium text-foreground mt-0.5">
+                        {userDetail?.email_verified_at ? formatDate(userDetail.email_verified_at) : (currentDisplayUser.email_verified_at ? formatDate(currentDisplayUser.email_verified_at) : '-')}
+                      </p>
+                    </div>
+                    {userDetail?.email_verification_note && (
+                      <div className="col-span-2 pt-2 border-t border-border/40">
+                        <span className="text-muted-foreground text-[10px] uppercase font-bold">{t('admin.users.drawerVerificationNote')}</span>
+                        <p className="font-medium text-foreground mt-0.5 italic text-xs bg-muted/40 p-2.5 rounded-xl border border-border/40 leading-relaxed">
+                          "{userDetail.email_verification_note}"
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -963,6 +1228,14 @@ export const UsersTab: React.FC = () => {
           </div>
         )}
       </AdminConfirmModal>
+
+      {/* Manual Email Verification Modal */}
+      <VerifyEmailModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+        onConfirm={handleConfirmVerifyEmail}
+        user={verifyTargetUser}
+      />
     </div>
   );
 };

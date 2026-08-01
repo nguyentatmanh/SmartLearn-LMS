@@ -82,38 +82,17 @@ def get_teacher_stats(
     current_user: User = Depends(deps.get_current_active_teacher),
 ) -> Any:
     """
-    Real statistics for the teacher dashboard.
-    Counts courses by status, total enrolled students, total materials.
+    Real statistics for the teacher dashboard (Consolidated via TeacherService).
     """
-    courses = crud_course.get_courses(db, teacher_id=current_user.id)
-    course_ids = [c.id for c in courses]
-
-    total = len(courses)
-    published = sum(1 for c in courses if c.status == CourseStatus.PUBLISHED)
-    draft = sum(1 for c in courses if c.status == CourseStatus.DRAFT)
-    archived = sum(1 for c in courses if c.status == CourseStatus.ARCHIVED)
-
-    # Total unique students enrolled in teacher's courses
-    total_students = 0
-    if course_ids:
-        total_students = db.query(sa_func.count(sa_func.distinct(Enrollment.student_id))).filter(
-            Enrollment.course_id.in_(course_ids)
-        ).scalar() or 0
-
-    # Total materials across teacher's courses
-    total_materials = 0
-    if course_ids:
-        total_materials = db.query(sa_func.count(LearningMaterial.id)).filter(
-            LearningMaterial.course_id.in_(course_ids)
-        ).scalar() or 0
-
+    from app.services.teacher_service import TeacherService
+    stats = TeacherService.get_stats(db, teacher_id=current_user.id)
     return TeacherDashboardStats(
-        total_courses=total,
-        published_courses=published,
-        draft_courses=draft,
-        archived_courses=archived,
-        total_students=total_students,
-        total_materials=total_materials,
+        total_courses=stats.total_courses,
+        published_courses=stats.published_courses,
+        draft_courses=stats.draft_courses,
+        archived_courses=stats.archived_courses,
+        total_students=stats.total_unique_students,
+        total_materials=stats.total_materials,
     )
 
 

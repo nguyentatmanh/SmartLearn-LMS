@@ -12,12 +12,11 @@ import api from '@/lib/api';
 import TeacherSidebar from '@/components/teacher/TeacherSidebar';
 import DashboardHeader from '@/components/teacher/DashboardHeader';
 import { TeacherStatsGrid, DashboardStats } from '@/components/teacher/StatCard';
-import ActionCenter from '@/components/teacher/ActionCenter';
+import PriorityAlertBanner from '@/components/teacher/PriorityAlertBanner';
+import TeacherCalendar from '@/components/teacher/TeacherCalendar';
 import FilterToolbar, { StatusFilter, SortOption, ViewMode } from '@/components/teacher/FilterToolbar';
 import CourseCard, { CourseItem } from '@/components/teacher/CourseCard';
 import CourseCardSkeleton from '@/components/teacher/CourseCardSkeleton';
-import RecentCourses from '@/components/teacher/RecentCourses';
-import RecentActivity from '@/components/teacher/RecentActivity';
 import SectionErrorState from '@/components/common/SectionErrorState';
 import EmptyState from '@/components/common/EmptyState';
 
@@ -33,7 +32,7 @@ const courseSchema = z.object({
 type CourseSchemaType = z.infer<typeof courseSchema>;
 
 export default function TeacherDashboard() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const { language, t, isMounted } = usePreference();
   const router = useRouter();
 
@@ -51,7 +50,7 @@ export default function TeacherDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   // Create Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -86,9 +85,16 @@ export default function TeacherDashboard() {
         router.push('/dashboard/student');
       } else if (user.role === 'admin') {
         router.push('/dashboard/admin');
+      } else if (user.role === 'teacher') {
+        if (user.email_verified === false) {
+          router.push(`/verify-email?email=${encodeURIComponent(user.email)}`);
+        } else if (!user.is_active) {
+          logout();
+          router.push('/login?error=suspended');
+        }
       }
     }
-  }, [user, authLoading, router, isMounted]);
+  }, [user, authLoading, router, isMounted, logout]);
 
   // Fetch Courses independently
   const fetchCourses = async () => {
@@ -130,6 +136,7 @@ export default function TeacherDashboard() {
         published_courses: currentCoursesList.filter((c) => c.status === 'published').length,
         draft_courses: currentCoursesList.filter((c) => c.status === 'draft').length,
         archived_courses: currentCoursesList.filter((c) => c.status === 'archived').length,
+        total_unique_students: currentCoursesList.reduce((acc, c) => acc + (c.enrollments_count || 0), 0),
         total_students: currentCoursesList.reduce((acc, c) => acc + (c.enrollments_count || 0), 0),
         total_materials: 0,
       });
@@ -242,92 +249,94 @@ export default function TeacherDashboard() {
           onRetry={() => fetchStats()}
         />
 
-        {/* 3. Action Center (Requires Attention) */}
-        <ActionCenter
-          user={user}
-          courses={courses}
-          draftCount={draftCount}
+        {/* 3. Priority Alerts Banner ("Công việc cần chú ý") */}
+        <PriorityAlertBanner
+          urgentCourseTitle={courses[0]?.title || 'Lập trình Python'}
+          urgentCourseId={courses[0]?.id}
+          hasUrgentItems={true}
         />
 
-        {/* 4. Lower Dashboard: Recent Courses (60%) & Recent Activity (40%) */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3">
-            <RecentCourses courses={courses} />
-          </div>
-          <div className="lg:col-span-2">
-            <RecentActivity courses={courses} />
-          </div>
-        </div>
+        {/* 4. Main 2-Column Asymmetric Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* Left Column (8-col): Course Management Section */}
+          <div className="lg:col-span-8 space-y-5 min-w-0">
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <h2 className="text-lg font-extrabold tracking-tight text-foreground">
+                    {language === 'en' ? 'My Courses Management' : 'Quản lý Khóa học của tôi'} {!loadingCourses && !courseError && `(${courses.length})`}
+                  </h2>
+                </div>
+              </div>
 
-        {/* 5. Course Catalog Section */}
-        <section className="space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-extrabold tracking-tight text-foreground">
-                {t('myCourses')} {!loadingCourses && !courseError && `(${courses.length})`}
-              </h2>
-            </div>
-          </div>
-
-          {/* Search, Status Tabs & Layout Controls */}
-          <FilterToolbar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            statusFilter={statusFilter}
-            onStatusChange={setStatusFilter}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            totalResults={filteredCourses.length}
-          />
-
-          {/* Course List Content Area */}
-          {loadingCourses ? (
-            <CourseCardSkeleton count={6} viewMode={viewMode} />
-          ) : courseError ? (
-            <SectionErrorState
-              title={t('teacherLoadCoursesError')}
-              message={courseError}
-              onRetry={fetchCourses}
-            />
-          ) : filteredCourses.length === 0 ? (
-            <div className="bg-card border border-border/60 rounded-3xl p-6">
-              <EmptyState
-                icon={<FolderClosed className="h-7 w-7 text-muted-foreground" />}
-                title={searchTerm ? t('emptyNoCatalogTitle') : t('emptyNoCoursesCreatedTitle')}
-                description={searchTerm ? t('emptyNoCatalogDesc') : t('emptyNoCoursesCreatedDesc')}
-                action={
-                  !searchTerm && approvalStatus === 'approved' ? (
-                    <button
-                      onClick={() => setShowCreateModal(true)}
-                      className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-bold transition-all shadow-md shadow-primary/20"
-                    >
-                      {t('createCourse')}
-                    </button>
-                  ) : undefined
-                }
+              {/* Search, Status Tabs & Layout Controls */}
+              <FilterToolbar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                totalResults={filteredCourses.length}
               />
-            </div>
-          ) : (
-            <div
-              className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5'
-                  : 'space-y-3'
-              }
-            >
-              {filteredCourses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  viewMode={viewMode}
+
+              {/* Course List Content Area */}
+              {loadingCourses ? (
+                <CourseCardSkeleton count={4} viewMode={viewMode} />
+              ) : courseError ? (
+                <SectionErrorState
+                  title={t('teacherLoadCoursesError')}
+                  message={courseError}
+                  onRetry={fetchCourses}
                 />
-              ))}
-            </div>
-          )}
-        </section>
+              ) : filteredCourses.length === 0 ? (
+                <div className="bg-card border border-border/60 rounded-3xl p-6">
+                  <EmptyState
+                    icon={<FolderClosed className="h-7 w-7 text-muted-foreground" />}
+                    title={searchTerm ? t('emptyNoCatalogTitle') : t('emptyNoCoursesCreatedTitle')}
+                    description={searchTerm ? t('emptyNoCatalogDesc') : t('emptyNoCoursesCreatedDesc')}
+                    action={
+                      !searchTerm && approvalStatus === 'approved' ? (
+                        <button
+                          onClick={() => setShowCreateModal(true)}
+                          className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl text-xs font-bold transition-all shadow-md shadow-primary/20 cursor-pointer"
+                        >
+                          {t('createCourse')}
+                        </button>
+                      ) : undefined
+                    }
+                  />
+                </div>
+              ) : (
+                <div
+                  className={
+                    viewMode === 'grid'
+                      ? 'grid grid-cols-1 sm:grid-cols-2 gap-4'
+                      : 'space-y-4'
+                  }
+                >
+                  {filteredCourses.map((course) => (
+                    <CourseCard
+                      key={course.id}
+                      course={course}
+                      viewMode={viewMode}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Right Column (4-col): Calendar Widget & Upcoming Events */}
+          <div className="lg:col-span-4 min-w-0 space-y-6">
+            <TeacherCalendar />
+          </div>
+
+        </div>
 
         {/* Create Course Modal */}
         {showCreateModal && (

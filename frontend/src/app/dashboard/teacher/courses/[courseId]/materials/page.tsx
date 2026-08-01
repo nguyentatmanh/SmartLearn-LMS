@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import { usePreference } from '@/context/PreferenceContext';
 import api from '@/lib/api';
 import EmptyState from '@/components/common/EmptyState';
@@ -28,18 +29,20 @@ interface Material {
   download_url?: string;
   created_at: string;
 }
-
 export default function MaterialsPage({ course, loading, courseId }: MaterialsPageProps) {
   const { language } = usePreference();
+  const params = useParams();
+  const cId = courseId || (params?.courseId as string);
+
   const [materials, setMaterials] = useState<Material[]>([]);
   const [matLoading, setMatLoading] = useState(true);
 
   useEffect(() => {
-    if (!courseId || loading) return;
+    if (!cId) return;
     const fetchMaterials = async () => {
       setMatLoading(true);
       try {
-        const res = await api.get(`/materials/courses/${courseId}/materials`);
+        const res = await api.get(`/materials/courses/${cId}/materials`);
         setMaterials(res.data || []);
       } catch {
         setMaterials([]);
@@ -48,7 +51,7 @@ export default function MaterialsPage({ course, loading, courseId }: MaterialsPa
       }
     };
     fetchMaterials();
-  }, [courseId, loading]);
+  }, [cId]);
 
   const formatSize = (bytes?: number) => {
     if (!bytes) return '—';

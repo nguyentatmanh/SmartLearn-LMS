@@ -1,48 +1,36 @@
 'use client';
 
 import React from 'react';
-import AppHeader from '@/components/Header';
-import HeroSection from '@/components/landing/HeroSection';
-import BenefitStrip from '@/components/landing/BenefitStrip';
-import FeatureGrid from '@/components/landing/FeatureGrid';
-import RoleSolutions from '@/components/landing/RoleSolutions';
-import ProcessSection from '@/components/landing/ProcessSection';
-import ResponsibleAISection from '@/components/landing/ResponsibleAISection';
-import FinalCTA from '@/components/landing/FinalCTA';
-import PublicFooter from '@/components/landing/PublicFooter';
+import LandingHeader from '@/components/landing/LandingHeader';
+import LandingHero from '@/components/landing/LandingHero';
+import FeatureHighlights from '@/components/landing/FeatureHighlights';
+import LandingRoleSolutions from '@/components/landing/LandingRoleSolutions';
+import HowItWorks from '@/components/landing/HowItWorks';
+import SecurityGovernance from '@/components/landing/SecurityGovernance';
+import LandingCTA from '@/components/landing/LandingCTA';
+import LandingFooter from '@/components/landing/LandingFooter';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-dvh flex flex-col justify-between bg-background text-foreground transition-colors duration-200 overflow-x-hidden">
-      {/* 1. Public Header */}
-      <AppHeader />
+    <div
+      className="landing-page font-landing min-h-dvh flex flex-col overflow-x-clip"
+      style={{ backgroundColor: 'var(--landing-bg)', color: 'var(--landing-fg)' }}
+    >
+      {/* Fixed Landing Header */}
+      <LandingHeader />
 
-      {/* 2. Main Landing Page Content */}
-      <main className="flex-grow">
-        {/* Hero Section */}
-        <HeroSection />
-
-        {/* 4 Compact Platform Benefits Strip */}
-        <BenefitStrip />
-
-        {/* 6 Core Feature Cards Grid */}
-        <FeatureGrid />
-
-        {/* Role-Based Interactive Tabbed Solutions */}
-        <RoleSolutions />
-
-        {/* 3-Step Visual Workflow */}
-        <ProcessSection />
-
-        {/* Responsible AI Standards Section */}
-        <ResponsibleAISection />
-
-        {/* Final Registration Call-to-Action */}
-        <FinalCTA />
+      {/* Main Content with Top Padding matching Header Height */}
+      <main className="flex-grow pt-[var(--landing-header-height)]">
+        <LandingHero />
+        <FeatureHighlights />
+        <LandingRoleSolutions />
+        <HowItWorks />
+        <SecurityGovernance />
+        <LandingCTA />
       </main>
 
-      {/* 3. Public Footer */}
-      <PublicFooter />
+      {/* Footer */}
+      <LandingFooter />
     </div>
   );
 }

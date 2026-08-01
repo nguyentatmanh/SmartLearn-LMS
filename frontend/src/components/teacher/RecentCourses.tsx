@@ -29,7 +29,7 @@ export default function RecentCourses({ courses }: RecentCoursesProps) {
         <div className="flex items-center justify-between pb-2 border-b border-border/40">
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-primary" />
-            <h3 className="font-extrabold text-xs text-foreground uppercase tracking-wider">
+            <h3 className="font-bold text-xs text-foreground">
               {t('recentCoursesTitle')}
             </h3>
           </div>
@@ -37,7 +37,7 @@ export default function RecentCourses({ courses }: RecentCoursesProps) {
             href="/dashboard/teacher/courses"
             className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
           >
-            <span>{t('viewAll') || 'View all'}</span>
+            <span>{t('teacher.common.viewAll') || t('viewAll')}</span>
             <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
